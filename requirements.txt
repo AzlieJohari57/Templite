@@ -1,0 +1,13 @@
+pandas
+numpy 
+ipykernel
+pdfplumber
+requests
+python-dotenv
+fastapi
+uvicorn
+langchain
+langgraph
+langgraph-prebuilt 
+langchain_openai
+langchain_experimental

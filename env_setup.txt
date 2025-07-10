@@ -1,0 +1,5 @@
+conda create -n templite python=3.12
+
+pip install -r requirements.txt
+
+pip install --upgrade -r requirements.txt
