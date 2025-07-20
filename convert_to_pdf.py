@@ -24,7 +24,7 @@ async def url_to_pdf(url, output_path):
         await browser.close()
 
 # Convert local HTML file to file:// URI
-html_path = Path("./generated html/output_resume.html").resolve().as_uri()
+html_path = Path("./generated html/5757_output_resume.html").resolve().as_uri()
 output_path = "./generated resume/resume_output.pdf"
 
 asyncio.run(url_to_pdf(html_path, output_path))
