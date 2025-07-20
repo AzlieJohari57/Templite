@@ -112,15 +112,15 @@
 
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-      <h2 style="margin-top: 10px; margin-bottom: 8px;">Maklumat Peribadi</h2>
+      <h2 style="margin-top: 10px; margin-bottom: 8px;">Personal Information</h2>
       <ul style="list-style: none; padding-left: 0; margin: 10px 0;">
-        <li style="margin: 4px 0;"><i class="fa fa-user" style="margin-right: 8px;"></i><strong>Nama:</strong> {{ name }}</li>
-        <li style="margin: 4px 0;"><i class="fa fa-location-dot" style="margin-right: 8px;"></i><strong>Alamat:</strong> {{ address }}</li>
-        <li style="margin: 4px 0;"><i class="fa fa-envelope" style="margin-right: 8px;"></i><strong>Emel:</strong> {{ email }}</li>
-        <li style="margin: 4px 0;"><i class="fa fa-phone" style="margin-right: 8px;"></i><strong>No Telefon:</strong> {{ telephone }}</li>
+        <li style="margin: 4px 0;"><i class="fa fa-user" style="margin-right: 8px;"></i><strong>Name:</strong> {{ name }}</li>
+        <li style="margin: 4px 0;"><i class="fa fa-location-dot" style="margin-right: 8px;"></i><strong>Address:</strong> {{ adress }}</li>
+        <li style="margin: 4px 0;"><i class="fa fa-envelope" style="margin-right: 8px;"></i><strong>Email:</strong> {{ email }}</li>
+        <li style="margin: 4px 0;"><i class="fa fa-phone" style="margin-right: 8px;"></i><strong>Phone:</strong> {{ telephone }}</li>
       </ul>
 
-      <div class="section-title">Kemahiran Teknikal</div>
+      <div class="section-title">Technical Skills</div>
       {% for skill, level in skills['technical skills'].items() %}
       <div class="progress-container">
         <div class="progress-label">{{ skill }}</div>
@@ -128,7 +128,7 @@
       </div>
       {% endfor %}
 
-      <div class="section-title">Kemahiran Peribadi</div>
+      <div class="section-title">Soft Skills</div>
       {% for trait, score in skills['soft skills'].items() %}
       <div class="progress-container">
         <div class="progress-label">{{ trait }}</div>
@@ -136,23 +136,34 @@
       </div>
       {% endfor %}
 
-      <div class="section-title" style="margin-top: 20px;">Sijil</div>
+      <div class="section-title" style="margin-top: 20px;">Certifications</div>
       <ul style="margin: 8px 0 0 0; padding-left: 20px;">
         {% for cert in certification %}
         <li style="margin-bottom: 4px;">{{ cert }}</li>
         {% endfor %}
       </ul>
+
+      <div class="section-title" style="margin-top: 20px;">Languages</div>
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        {% for lang in language %}
+          {% for k, v in lang.items() %}
+          <li><strong>{{ k }}:</strong> {{ v|capitalize }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+
     </div>
 
     <div class="right-section">
       <h1><strong>{{ name }}</strong></h1>
       <h2 class="job-title">{{ title }}</h2>
 
-      <h2>Tentang Saya</h2>
+      <h2>About Me</h2>
       <hr/>
       <p>{{ about }}</p>
 
-      <h2>Pengalaman</h2>
+      {% if experience %}
+      <h2>Experience</h2>
       <hr/>
       {% for job in experience %}
       <div class="job-entry">
@@ -165,8 +176,17 @@
         </ul>
       </div>
       {% endfor %}
+      {% else %}
+      <h2>Strengths</h2>
+      <hr/>
+      <ul>
+        {% for s in strength %}
+        <li>{{ s }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
 
-      <h2>Pendidikan</h2>
+      <h2>Education</h2>
       <hr/>
       {% for edu in education %}
       <div class="education-entry">
@@ -178,18 +198,19 @@
       </div>
       {% endfor %}
 
-      <h2>Rujukan</h2>
+      <h2>References</h2>
       <hr/>
       {% for ref in reference %}
       <div class="reference-entry">
         <strong>{{ ref.name }}</strong><br>
         {{ ref.position }}, {{ ref.company }}<br>
-        Emel: {{ ref.email }}<br>
-        Telefon: {{ ref.telephone }}
+        Email: {{ ref.email }}<br>
+        Phone: {{ ref.telephone }}
       </div>
       {% endfor %}
     </div>
   </div>
 </body>
+
 </html>
 </html>

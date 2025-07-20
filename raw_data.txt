@@ -1,0 +1,67 @@
+{
+  "id": "5757",
+  "title": "Pembangun Web Asas",
+  "image": "",
+  "name": "Nadira Aisyah",
+  "adress": "No. 12, Jalan Bunga Raya, 50450 Kuala Lumpur",
+  "email": "nadira.aisyah@techmail.com",
+  "telephone": "+60 12 345 6789",
+  "about": "Pembangun web asas dengan pengalaman terhad dalam tugasan teknikal ringan. Masih membina kemahiran dalam pengaturcaraan dan reka bentuk web moden.",
+  "language": [
+    {
+      "bahasa malaysia": "professional"
+    },
+    {
+      "English": "professional"
+    }
+  ],
+  "experience": [],
+  "number of jobs": 0,
+  "education": [
+    {
+      "level": "Diploma",
+      "institution": "Politeknik Shah Alam",
+      "duration": "2018 \u2013 2021",
+      "details": "CGPA 2.65/4.00."
+    }
+  ],
+  "strength": [
+    "able to communicate well in a team environment",
+    "work hard",
+    "good time management"
+  ],
+  "reference": [
+    {
+      "name": "Pn. Farah Lina",
+      "position": "Pegawai Pentadbiran",
+      "company": "FusionTech Solutions",
+      "email": "farah.lina@fusiontech.com",
+      "telephone": "+60 12 678 9012"
+    },
+    {
+      "name": "En. Ahmad Zulkifli",
+      "position": "Pembantu Pensyarah",
+      "company": "Universiti Malaya",
+      "email": "ahmad.zulkifli@um.edu.my",
+      "telephone": "+60 13 123 4567"
+    }
+  ],
+  "skills": {
+    "technical skills": {
+      "Python": 30,
+      "JavaScript": 20,
+      "SQL": 15,
+      "React": 25
+    },
+    "soft skills": {
+      "Komunikasi": 20,
+      "Kerja Berpasukan": 21,
+      "Pengurusan Masa": 19,
+      "Kepimpinan": 18
+    }
+  },
+  "certification": [
+    "Coursesera Asas Python - 2023",
+    "Coursesera Pengenalan Cloud - 2022"
+  ]
+}
