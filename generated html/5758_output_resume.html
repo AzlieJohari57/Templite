@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume - Hafiz Ramli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        /* Custom styles for better PDF rendering */
+        .progress-container {
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar {
+            background-color: #e5e7eb;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background-color: #9e786f;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Ensure proper spacing for single page */
+        .compact-spacing {
+            line-height: 1.3;
+        }
+        
+        .compact-list li {
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body class="bg-white font-sans m-0 p-0 text-black compact-spacing">
+    <div class="w-full min-h-screen grid grid-cols-3 gap-0">
+        <!-- Left Column -->
+        <div class="col-span-1 p-4 space-y-4 bg-white">
+            <img src="../images/5758.png" alt="Hafiz Ramli" class="w-full h-auto border-4 border-gray-300" />
+
+            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">CONTACT</div>
+            <div class="space-y-1 text-sm">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-phone text-xs"></i>
+                    <span>+60 13 456 7890</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-envelope text-xs"></i>
+                    <span class="text-xs">hafiz.ramli@civiltech.my</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-map-marker-alt pt-1 text-xs"></i>
+                    <span class="text-xs">No. 22, Jalan Setia Indah, 40170 Shah Alam, Selangor</span>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <i class="fab fa-linkedin text-xs"></i>
+                    <span class="text-xs">hafizramli-civil</span>
+                </div>
+                
+            </div>
+
+            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">TECHNICAL SKILLS</div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">AutoCAD</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 30%"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">SAP2000</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 25%"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">Microsoft Project</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 20%"></div>
+                </div>
+            </div>
+            
+
+            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">SOFT SKILLS</div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">Leadership</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 20%"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">Team Collaboration</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 22%"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="text-xs mb-1">Problem Solving</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 18%"></div>
+                </div>
+            </div>
+            
+
+            
+            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">CERTIFICATIONS</div>
+            <ul class="text-xs space-y-1 compact-list">
+                
+                <li>CIDB Green Card, 2020</li>
+                
+                <li>Autodesk Certified Professional, 2022</li>
+                
+            </ul>
+            
+
+            
+            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">LANGUAGES</div>
+            <ul class="text-xs space-y-1 compact-list">
+                
+                    
+                    <li><strong>Bahasa Malaysia:</strong> Professional</li>
+                    
+                
+                    
+                    <li><strong>English:</strong> Professional</li>
+                    
+                
+            </ul>
+            
+
+            
+            
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-span-2 p-4 space-y-4 bg-white">
+            <div class="flex items-baseline space-x-4">
+                <div class="w-1 h-10 bg-black"></div>
+                <div>
+                    <h1 class="text-2xl font-semibold leading-tight">Hafiz</h1>
+                    
+                    <h2 class="text-xl font-semibold bg-[#b98e82] text-white px-2">Ramli</h2>
+                    
+                    <p class="text-base text-gray-600 mt-1">Civil Engineer</p>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">ABOUT ME</h3>
+                <p class="text-sm text-justify">Experienced civil engineer with a strong background in infrastructure projects and site supervision. Demonstrated expertise in enhancing project efficiency and sustainability through innovative engineering solutions and effective resource management.</p>
+            </div>
+
+            
+            
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">EXPERIENCE</h3>
+                <div class="text-sm space-y-3">
+                    
+                    
+                    <div>
+                        <p class="font-bold">Cipta Bina Sdn Bhd</p>
+                        <p class="text-gray-600">Civil Engineer, 01/01/2023 – 31/12/2025</p>
+                        <p class="text-gray-500 text-xs">Kuala Lumpur</p>
+                        <ul class="list-disc list-inside ml-4 compact-list">
+                            
+                                
+                                
+                                <li class="text-xs">Led site operations for a multi-storey commercial project, achieving a 15% reduction in construction time through effective resource management and strategic scheduling.</li>
+                                
+                                <li class="text-xs">Coordinated subcontractors across multiple trades, enhancing collaboration and communication, which resulted in a 20% increase in project efficiency and minimized delays.</li>
+                                
+                                <li class="text-xs">Ensured timely completion of project milestones, maintaining a 98% adherence to deadlines, which contributed to a successful handover and client satisfaction.</li>
+                                
+                            
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <p class="font-bold">Perunding Teguh</p>
+                        <p class="text-gray-600">Site Engineer, 01/01/2021 – 31/12/2023</p>
+                        <p class="text-gray-500 text-xs">Selangor</p>
+                        <ul class="list-disc list-inside ml-4 compact-list">
+                            
+                                
+                                
+                                <li class="text-xs">Supervised structural works for a residential housing project, ensuring compliance with safety regulations and quality standards, resulting in a 20% reduction in rework and a 15% increase in project efficiency.</li>
+                                
+                                <li class="text-xs">Managed site inspections, coordinating with contractors and stakeholders to identify and resolve issues promptly, which led to a 30% decrease in project delays and enhanced overall project delivery timelines.</li>
+                                
+                                <li class="text-xs">Implemented quality control measures during construction phases, achieving a 95% pass rate on inspections and significantly improving client satisfaction ratings for the residential housing project.</li>
+                                
+                            
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <p class="font-bold">Dinamik Consult</p>
+                        <p class="text-gray-600">Junior Engineer, 01/01/2019 – 31/12/2021</p>
+                        <p class="text-gray-500 text-xs">Johor Bahru</p>
+                        <ul class="list-disc list-inside ml-4 compact-list">
+                            
+                                
+                                
+                                <li class="text-xs">Assisted in civil design calculations, contributing to a 15% reduction in project costs through optimized material selection and efficient design methodologies.</li>
+                                
+                                <li class="text-xs">Conducted detailed project costing analyses, enabling accurate budget forecasts that improved financial planning and reduced overruns by 20%.</li>
+                                
+                                <li class="text-xs">Prepared comprehensive construction drawings that enhanced project clarity, resulting in a 30% decrease in on-site errors and rework during the construction phase.</li>
+                                
+                            
+                        </ul>
+                    </div>
+                    
+                </div>
+            </div>
+            
+
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">EDUCATION</h3>
+                <ul class="text-sm space-y-2 compact-list">
+                    
+                    <li>
+                        <p class="font-bold">Universiti Teknologi Malaysia (UTM)</p>
+                        
+                        <p class="text-gray-700">Bachelor of Civil Engineering</p>
+                        
+                    </li>
+                    
+                    <li>
+                        <p class="font-bold">Politeknik Sultan Salahuddin Abdul Aziz Shah</p>
+                        
+                        <p class="text-gray-700">Diploma in Civil Engineering</p>
+                        
+                    </li>
+                    
+                    <li>
+                        <p class="font-bold">SMK Taman Bunga Raya</p>
+                        
+                        <p class="text-gray-700">SPM</p>
+                        
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    
+    <div class="page-break w-full min-h-screen p-8 bg-white">
+        <div class="space-y-6">
+            
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">ACHIEVEMENTS</h3>
+                <ul class="text-sm list-disc list-inside space-y-2 compact-list">
+                    
+                    <li>Spearheaded a cost-saving initiative that reduced material waste by 18%, saving the company RM120,000 annually through improved inventory forecasting and supplier negotiations.</li>
+                    
+                    <li>Designed and implemented a project tracking dashboard that increased team productivity by 25% and shortened project delivery timelines by two weeks on average.</li>
+                    
+                    <li>Led a cross-functional team of 8 to deliver a civil infrastructure project 10% under budget and ahead of schedule, earning recognition from senior management for outstanding execution.</li>
+                    
+                </ul>
+            </div>
+            
+
+            
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">EXTRACURRICULAR ACTIVITIES</h3>
+                <ul class="text-sm list-disc list-inside space-y-2 compact-list">
+                    
+                    <li>
+                        <strong>Vice President, UTM Civil Engineering Society</strong> (01/01/2018 – 31/12/2019)
+                        
+                    </li>
+                    
+                </ul>
+            </div>
+            
+
+            <div>
+                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">REFERENCES</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                    
+                    <div class="space-y-1">
+                        <p class="font-bold">En. Zamri Hassan</p>
+                        <p>Senior Project Manager</p>
+                        <p>Cipta Bina Sdn Bhd</p>
+                        
+                        <p>Phone: +60 12 888 1122</p>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <p class="font-bold">Pn. Alia Mazlan</p>
+                        <p>Lecturer</p>
+                        <p>UTM Skudai</p>
+                        <p>Email: alia.mazlan@utm.my</p>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>

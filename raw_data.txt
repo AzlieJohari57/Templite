@@ -1,67 +1,131 @@
 {
-  "id": "5757",
-  "title": "Pembangun Web Asas",
-  "image": "",
-  "name": "Nadira Aisyah",
-  "adress": "No. 12, Jalan Bunga Raya, 50450 Kuala Lumpur",
-  "email": "nadira.aisyah@techmail.com",
-  "telephone": "+60 12 345 6789",
-  "about": "Pembangun web asas dengan pengalaman terhad dalam tugasan teknikal ringan. Masih membina kemahiran dalam pengaturcaraan dan reka bentuk web moden.",
+  "id": "5758",
+  "title": "Civil Engineer",
+  "image": "../images/5758.png",
+  "name": "Hafiz Ramli",
+  "adress": "No. 22, Jalan Setia Indah, 40170 Shah Alam, Selangor",
+  "email": "hafiz.ramli@civiltech.my",
+  "linkedin": "hafizramli-civil",
+  "telephone": "+60 13 456 7890",
+  "about": "Experienced civil engineer with a strong background in infrastructure projects and site supervision. Passionate about sustainable development and project efficiency.",
   "language": [
     {
-      "bahasa malaysia": "professional"
+      "Bahasa Malaysia": "professional"
     },
     {
       "English": "professional"
     }
   ],
-  "experience": [],
-  "number of jobs": 0,
+  "experience": [
+    {
+      "company": "Cipta Bina Sdn Bhd",
+      "title": "Civil Engineer",
+      "location": "Kuala Lumpur",
+      "duration": "2023 \u2013 2025",
+      "details": [
+        "Led site operations for a multi-storey commercial project",
+        "Coordinated subcontractors",
+        "Ensured timely completion"
+      ]
+    },
+    {
+      "company": "Perunding Teguh",
+      "title": "Site Engineer",
+      "location": "Selangor",
+      "duration": "2021 \u2013 2023",
+      "details": [
+        "Supervised structural works",
+        "Managed site inspections for residential housing project"
+      ]
+    },
+    {
+      "company": "Dinamik Consult",
+      "title": "Junior Engineer",
+      "location": "Johor Bahru",
+      "duration": "2019 \u2013 2021",
+      "details": [
+        "Assisted in civil design calculations",
+        "Project costing",
+        "Preparation of construction drawings"
+      ]
+    }
+  ],
+  "number of jobs": 3,
   "education": [
     {
-      "level": "Diploma",
-      "institution": "Politeknik Shah Alam",
-      "duration": "2018 \u2013 2021",
-      "details": "CGPA 2.65/4.00."
+      "level": "Bachelor of Civil Engineering",
+      "institution": "Universiti Teknologi Malaysia (UTM)",
+      "duration": "",
+      "grade": "CGPA 3.45/4.00"
+    },
+    {
+      "level": "Diploma in Civil Engineering",
+      "institution": "Politeknik Sultan Salahuddin Abdul Aziz Shah",
+      "duration": "",
+      "grade": "3.88/4.00"
+    },
+    {
+      "level": "SPM",
+      "institution": "SMK Taman Bunga Raya",
+      "duration": "",
+      "grade": "8A 2B"
     }
   ],
   "strength": [
-    "able to communicate well in a team environment",
-    "work hard",
-    "good time management"
+    "detail-oriented and dependable",
+    "able to work under pressure and meet deadlines",
+    "strong leadership in managing construction teams"
   ],
   "reference": [
     {
-      "name": "Pn. Farah Lina",
-      "position": "Pegawai Pentadbiran",
-      "company": "FusionTech Solutions",
-      "email": "farah.lina@fusiontech.com",
-      "telephone": "+60 12 678 9012"
+      "name": "En. Zamri Hassan",
+      "position": "Senior Project Manager",
+      "company": "Cipta Bina Sdn Bhd",
+      "email": "",
+      "telephone": "+60 12 888 1122"
     },
     {
-      "name": "En. Ahmad Zulkifli",
-      "position": "Pembantu Pensyarah",
-      "company": "Universiti Malaya",
-      "email": "ahmad.zulkifli@um.edu.my",
-      "telephone": "+60 13 123 4567"
+      "name": "Pn. Alia Mazlan",
+      "position": "Lecturer",
+      "company": "UTM Skudai",
+      "email": "alia.mazlan@utm.my",
+      "telephone": ""
     }
   ],
   "skills": {
     "technical skills": {
-      "Python": 30,
-      "JavaScript": 20,
-      "SQL": 15,
-      "React": 25
+      "AutoCAD": 30,
+      "SAP2000": 25,
+      "Microsoft Project": 20
     },
     "soft skills": {
-      "Komunikasi": 20,
-      "Kerja Berpasukan": 21,
-      "Pengurusan Masa": 19,
-      "Kepimpinan": 18
+      "Leadership": 20,
+      "Team Collaboration": 22,
+      "Problem Solving": 18
     }
   },
   "certification": [
-    "Coursesera Asas Python - 2023",
-    "Coursesera Pengenalan Cloud - 2022"
+    {
+      "title": "CIDB Green Card",
+      "issuer": "",
+      "date": "2020"
+    },
+    {
+      "title": "Autodesk Certified Professional",
+      "issuer": "",
+      "date": "2022"
+    }
+  ],
+  "achievement": [
+    "Spearheaded a cost-saving initiative that reduced material waste by 18%, saving the company RM120,000 annually through improved inventory forecasting and supplier negotiations",
+    "Designed and implemented a project tracking dashboard that increased team productivity by 25% and shortened project delivery timelines by two weeks on average.",
+    "Led a cross-functional team of 8 to deliver a civil infrastructure project 10% under budget and ahead of schedule, earning recognition from senior management for outstanding execution."
+  ],
+  "extracurricular activities": [
+    {
+      "title": "Vice President, UTM Civil Engineering Society",
+      "date": "2018/2019",
+      "details": ""
+    }
   ]
 }

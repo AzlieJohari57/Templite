@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume - {{ name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+            border: 1px solid #ddd;
+        }
+        
+        .left-section {
+            width: 35%;
+            background-color: #0f2f5a;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .right-section {
+            width: 65%;
+            padding: 20px;
+            background-color: white;
+        }
+        
+        .left-section img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            background-color: #fdb44b;
+            color: black;
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            margin: 15px 0 10px 0;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            width: 100%;
+        }
+        
+        .progress-container {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .progress-label {
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        
+        .progress-bar {
+            background-color: #333;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background-color: #fdb44b;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .right-section h1 {
+            font-size: 22px;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            color: #0f2f5a;
+        }
+        
+        .job-title {
+            color: #666;
+            font-size: 14px;
+            margin: 0 0 20px 0;
+            font-weight: normal;
+        }
+        
+        .right-section h2 {
+            background-color: #fdb44b;
+            color: black;
+            font-size: 12px;
+            padding: 8px 15px;
+            margin: 15px 0 8px 0;
+            border-radius: 20px;
+            display: inline-block;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .right-section hr {
+            display: none;
+        }
+        
+        .job-entry, .education-entry, .reference-entry {
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        
+        .job-entry strong, .education-entry strong, .reference-entry strong {
+            color: #0f2f5a;
+            font-size: 12px;
+        }
+        
+        .left-section ul, .right-section ul {
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .left-section ul {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+        
+        .left-section ul li {
+            margin-bottom: 6px;
+            padding-left: 0;
+        }
+        
+        .personal-info {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .personal-info h2 {
+            background-color: #fdb44b;
+            color: black;
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            margin: 0 0 10px 0;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        /* Second page styles */
+        .second-page {
+            page-break-before: always;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            background-color: white;
+        }
+        
+        .second-content {
+            max-width: 100%;
+        }
+        
+        .second-content .section-title {
+            background-color: #fdb44b;
+            color: black;
+            font-weight: bold;
+            padding: 8px 15px;
+            margin: 15px 0 8px 0;
+            border-radius: 20px;
+            display: inline-block;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        
+        @media print {
+            .container {
+                border: none;
+            }
+            
+            .second-page {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-section">
+            <img src="{{ image or './images/profile_pic.png' }}" alt="{{ name }}">
+            
+            <div class="personal-info">
+                <h2>Personal Information</h2>
+                <ul>
+                    <li><i class="fa fa-user" style="margin-right: 8px;"></i><strong>Name:</strong> {{ name }}</li>
+                    <li><i class="fa fa-location-dot" style="margin-right: 8px;"></i><strong>Address:</strong> {{ address }}</li>
+                    <li><i class="fa fa-envelope" style="margin-right: 8px;"></i><strong>Email:</strong> {{ email }}</li>
+                    <li><i class="fa fa-phone" style="margin-right: 8px;"></i><strong>Phone:</strong> {{ telephone }}</li>
+                    {% if linkedin %}
+                    <li><i class="fa fa-linkedin" style="margin-right: 8px;"></i><strong>LinkedIn:</strong> {{ linkedin }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="section-title">Technical Skills</div>
+            {% for skill, level in skills.technical_skills.items() %}
+            <div class="progress-container">
+                <div class="progress-label">{{ skill }}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: {{ level }}%"></div></div>
+            </div>
+            {% endfor %}
+
+            <div class="section-title">Soft Skills</div>
+            {% for trait, score in skills.soft_skills.items() %}
+            <div class="progress-container">
+                <div class="progress-label">{{ trait }}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: {{ score }}%"></div></div>
+            </div>
+            {% endfor %}
+
+            {% if certification %}
+            <div class="section-title">Certifications</div>
+            <ul>
+                {% for cert in certification %}
+                <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if language %}
+            <div class="section-title">Languages</div>
+            <ul>
+                {% for lang in language %}
+                    {% for k, v in lang.items() %}
+                    <li><strong>{{ k }}:</strong> {{ v|capitalize }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {# References on left side only if no achievements and no extracurricular activities #}
+            {% if not achievement and not extracurricular_activities %}
+            <div class="section-title">References</div>
+            {% for ref in reference %}
+            <div class="reference-entry" style="margin-bottom: 12px; font-size: 10px;">
+                <strong>{{ ref.name }}</strong><br>
+                {{ ref.position }}, {{ ref.company }}<br>
+                {% if ref.email %}Email: {{ ref.email }}<br>{% endif %}
+                {% if ref.telephone %}Phone: {{ ref.telephone }}{% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="right-section">
+            <h1>{{ name }}</h1>
+            <h2 class="job-title">{{ title }}</h2>
+
+            <h2>About Me</h2>
+            <p style="text-align: justify; margin-bottom: 15px;">{{ about }}</p>
+
+            {# Work Experience Logic - Dynamic details based on number of companies #}
+            {% if experience %}
+            <h2>Experience</h2>
+            {% set exp_count = experience|length %}
+            {% for job in experience %}
+            <div class="job-entry">
+                <strong>{{ job.company }}</strong> - {{ job.title }}<br>
+                <span style="color: #666;">{{ job.location }} | {{ job.duration }}</span>
+                <ul style="margin-top: 5px;">
+                    {% if exp_count == 3 %}
+                        {# 3 companies = 3 details each #}
+                        {% for bullet in job.details[:3] %}
+                        <li>{{ bullet }}</li>
+                        {% endfor %}
+                    {% elif exp_count == 2 %}
+                        {# 2 companies = 4 details each #}
+                        {% for bullet in job.details[:4] %}
+                        <li>{{ bullet }}</li>
+                        {% endfor %}
+                    {% elif exp_count == 1 %}
+                        {# 1 company = 8 details #}
+                        {% for bullet in job.details[:8] %}
+                        <li>{{ bullet }}</li>
+                        {% endfor %}
+                    {% else %}
+                        {# Default case - show all available details #}
+                        {% for bullet in job.details %}
+                        <li>{{ bullet }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+            {% endfor %}
+            {% else %}
+            {# No work experience = generate 8 strengths #}
+            <h2>Strengths</h2>
+            <ul>
+                {% for s in strength[:8] %}
+                <li>{{ s }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <h2>Education</h2>
+            {% for edu in education %}
+            <div class="education-entry">
+                <strong>{{ edu.level }}</strong><br>
+                {{ edu.institution }} {% if edu.duration %}| {{ edu.duration }}{% endif %}
+                {% if edu.details %}<ul style="margin-top: 3px;"><li>{{ edu.details }}</li></ul>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Second Page Logic - Show if achievements OR extracurricular activities exist #}
+    {% if achievement or extracurricular_activities %}
+    <div class="second-page">
+        <div class="second-content">
+            {% if achievement %}
+            <div class="section-title">Achievements</div>
+            <ul style="padding-left: 20px; margin-bottom: 20px;">
+                {% for item in achievement %}
+                <li style="margin-bottom: 5px;">{{ item }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if extracurricular_activities %}
+            <div class="section-title">Extracurricular Activities</div>
+            <ul style="padding-left: 20px; margin-bottom: 20px;">
+                {% for activity in extracurricular_activities %}
+                <li style="margin-bottom: 5px;">
+                    <strong>{{ activity.title }}</strong> ({{ activity.date }})
+                    {% if activity.details %} - {{ activity.details }}{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="section-title">References</div>
+            {% for ref in reference %}
+            <div class="reference-entry">
+                <strong>{{ ref.name }}</strong><br>
+                {{ ref.position }}, {{ ref.company }}<br>
+                {% if ref.email %}Email: {{ ref.email }}<br>{% endif %}
+                {% if ref.telephone %}Phone: {{ ref.telephone }}{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html>

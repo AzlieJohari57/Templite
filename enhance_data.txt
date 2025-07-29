@@ -1,99 +1,130 @@
 {
-  "id": "5757",
-  "title": "Web Developer",
-  "image": "",
-  "name": "Nadira Aisyah",
-  "address": "No. 12, Jalan Bunga Raya, 50450 Kuala Lumpur",
-  "email": "nadira.aisyah@techmail.com",
-  "telephone": "+60 12 345 6789",
-  "about": "Dedicated web developer with a solid foundation in modern programming and web design. Committed to continuous learning and staying updated with the latest web technologies, I aim to deliver high-quality, responsive web solutions that enhance user experience.",
+  "id": "5758",
+  "title": "Civil Engineer",
+  "image": "../images/5758.png",
+  "name": "Hafiz Ramli",
+  "address": "No. 22, Jalan Setia Indah, 40170 Shah Alam, Selangor",
+  "email": "hafiz.ramli@civiltech.my",
+  "linkedin": "hafizramli-civil",
+  "telephone": "+60 13 456 7890",
+  "about": "Experienced civil engineer with a strong background in infrastructure projects and site supervision. Demonstrated expertise in enhancing project efficiency and sustainability through innovative engineering solutions and effective resource management.",
   "language": [
     {
-      "language": "Malay",
-      "proficiency": "Professional"
+      "Bahasa Malaysia": "professional"
     },
     {
-      "language": "English",
-      "proficiency": "Professional"
+      "English": "professional"
     }
   ],
   "experience": [
     {
-      "job_title": "Junior Web Developer",
-      "company": "Tech Innovations Sdn Bhd",
-      "location": "Kuala Lumpur, Malaysia",
-      "start_date": "01/06/2022",
-      "end_date": "31/08/2023",
-      "responsibilities": [
-        "Developed and maintained over 15 responsive websites, improving load times by 30%.",
-        "Collaborated with a team of 5 developers using Agile methodologies, resulting in a 25% increase in project delivery speed.",
-        "Implemented SEO best practices, leading to a 40% increase in organic traffic for client websites."
+      "company": "Cipta Bina Sdn Bhd",
+      "title": "Civil Engineer",
+      "location": "Kuala Lumpur",
+      "duration": "01/01/2023 \u2013 31/12/2025",
+      "details": [
+        "Led site operations for a multi-storey commercial project, achieving a 15% reduction in construction time through effective resource management and strategic scheduling.",
+        "Coordinated subcontractors across multiple trades, enhancing collaboration and communication, which resulted in a 20% increase in project efficiency and minimized delays.",
+        "Ensured timely completion of project milestones, maintaining a 98% adherence to deadlines, which contributed to a successful handover and client satisfaction."
       ]
     },
     {
-      "job_title": "Web Development Intern",
-      "company": "Creative Web Solutions",
-      "location": "Kuala Lumpur, Malaysia",
-      "start_date": "01/01/2022",
-      "end_date": "31/05/2022",
-      "responsibilities": [
-        "Assisted in the development of 10+ websites using HTML, CSS, and JavaScript.",
-        "Participated in code reviews and contributed to improving code quality, reducing bugs by 15%.",
-        "Gained hands-on experience with Git and GitHub for version control."
+      "company": "Perunding Teguh",
+      "title": "Site Engineer",
+      "location": "Selangor",
+      "duration": "01/01/2021 \u2013 31/12/2023",
+      "details": [
+        "Supervised structural works for a residential housing project, ensuring compliance with safety regulations and quality standards, resulting in a 20% reduction in rework and a 15% increase in project efficiency.",
+        "Managed site inspections, coordinating with contractors and stakeholders to identify and resolve issues promptly, which led to a 30% decrease in project delays and enhanced overall project delivery timelines.",
+        "Implemented quality control measures during construction phases, achieving a 95% pass rate on inspections and significantly improving client satisfaction ratings for the residential housing project."
+      ]
+    },
+    {
+      "company": "Dinamik Consult",
+      "title": "Junior Engineer",
+      "location": "Johor Bahru",
+      "duration": "01/01/2019 \u2013 31/12/2021",
+      "details": [
+        "Assisted in civil design calculations, contributing to a 15% reduction in project costs through optimized material selection and efficient design methodologies.",
+        "Conducted detailed project costing analyses, enabling accurate budget forecasts that improved financial planning and reduced overruns by 20%.",
+        "Prepared comprehensive construction drawings that enhanced project clarity, resulting in a 30% decrease in on-site errors and rework during the construction phase."
       ]
     }
   ],
-  "number_of_jobs": 2,
+  "number_of_jobs": 3,
   "education": [
     {
-      "level": "Diploma",
-      "institution": "Politeknik Shah Alam",
-      "duration": "2018 \u2013 2021",
-      "details": "CGPA 2.65/4.00."
+      "level": "Bachelor of Civil Engineering",
+      "institution": "Universiti Teknologi Malaysia (UTM)",
+      "duration": "",
+      "grade": "CGPA 3.45/4.00"
+    },
+    {
+      "level": "Diploma in Civil Engineering",
+      "institution": "Politeknik Sultan Salahuddin Abdul Aziz Shah",
+      "duration": "",
+      "grade": "3.88/4.00"
+    },
+    {
+      "level": "SPM",
+      "institution": "SMK Taman Bunga Raya",
+      "duration": "",
+      "grade": "8A 2B"
     }
   ],
   "strength": [
-    "Proficient in HTML, CSS, and JavaScript for building responsive websites.",
-    "Skilled in using development tools like Git and GitHub for code management.",
-    "Experienced in utilizing CMS platforms such as WordPress for website development.",
-    "Able to understand and implement UI/UX design principles for enhanced user experience.",
-    "Possess skills in website optimization for improved speed and performance.",
-    "Capable of collaborating effectively in teams using Agile methodologies.",
-    "Committed to continuous learning and keeping up with the latest web technologies.",
-    "Strong problem-solving skills and ability to adapt quickly."
+    "Proficient in designing and managing infrastructure projects, with strong analytical skills and a proven ability to collaborate effectively with multidisciplinary teams to deliver innovative and sustainable engineering solutions."
   ],
   "reference": [
     {
-      "name": "Pn. Farah Lina",
-      "position": "Administrative Officer",
-      "company": "FusionTech Solutions",
-      "email": "farah.lina@fusiontech.com",
-      "telephone": "+60 12 678 9012"
+      "name": "En. Zamri Hassan",
+      "position": "Senior Project Manager",
+      "company": "Cipta Bina Sdn Bhd",
+      "email": "",
+      "telephone": "+60 12 888 1122"
     },
     {
-      "name": "En. Ahmad Zulkifli",
-      "position": "Lecturer Assistant",
-      "company": "Universiti Malaya",
-      "email": "ahmad.zulkifli@um.edu.my",
-      "telephone": "+60 13 123 4567"
+      "name": "Pn. Alia Mazlan",
+      "position": "Lecturer",
+      "company": "UTM Skudai",
+      "email": "alia.mazlan@utm.my",
+      "telephone": ""
     }
   ],
   "skills": {
     "technical_skills": {
-      "Python": 30,
-      "JavaScript": 20,
-      "SQL": 15,
-      "React": 25
+      "AutoCAD": 30,
+      "SAP2000": 25,
+      "Microsoft Project": 20
     },
     "soft_skills": {
-      "Communication": 20,
-      "Teamwork": 21,
-      "Time Management": 19,
-      "Leadership": 18
+      "Leadership": 20,
+      "Team Collaboration": 22,
+      "Problem Solving": 18
     }
   },
   "certification": [
-    "Coursera Basic Python - 2023",
-    "Coursera Introduction to Cloud - 2022"
+    {
+      "title": "CIDB Green Card",
+      "issuer": "",
+      "date": "2020"
+    },
+    {
+      "title": "Autodesk Certified Professional",
+      "issuer": "",
+      "date": "2022"
+    }
+  ],
+  "achievement": [
+    "Spearheaded a cost-saving initiative that reduced material waste by 18%, saving the company RM120,000 annually through improved inventory forecasting and supplier negotiations.",
+    "Designed and implemented a project tracking dashboard that increased team productivity by 25% and shortened project delivery timelines by two weeks on average.",
+    "Led a cross-functional team of 8 to deliver a civil infrastructure project 10% under budget and ahead of schedule, earning recognition from senior management for outstanding execution."
+  ],
+  "extracurricular_activities": [
+    {
+      "title": "Vice President, UTM Civil Engineering Society",
+      "date": "01/01/2018 \u2013 31/12/2019",
+      "details": ""
+    }
   ]
 }
