@@ -7,7 +7,7 @@
   "email": "hafiz.ramli@civiltech.my",
   "linkedin": "hafizramli-civil",
   "telephone": "+60 13 456 7890",
-  "about": "Experienced civil engineer with a strong background in infrastructure projects and site supervision. Demonstrated expertise in enhancing project efficiency and sustainability through innovative engineering solutions and effective resource management.",
+  "about": "Experienced civil engineer with a strong background in infrastructure projects and site supervision. Demonstrated expertise in sustainable development and project efficiency, with a commitment to delivering high-quality results.",
   "language": [
     {
       "Bahasa Malaysia": "professional"
@@ -16,42 +16,8 @@
       "English": "professional"
     }
   ],
-  "experience": [
-    {
-      "company": "Cipta Bina Sdn Bhd",
-      "title": "Civil Engineer",
-      "location": "Kuala Lumpur",
-      "duration": "01/01/2023 \u2013 31/12/2025",
-      "details": [
-        "Led site operations for a multi-storey commercial project, achieving a 15% reduction in construction time through effective resource management and strategic scheduling.",
-        "Coordinated subcontractors across multiple trades, enhancing collaboration and communication, which resulted in a 20% increase in project efficiency and minimized delays.",
-        "Ensured timely completion of project milestones, maintaining a 98% adherence to deadlines, which contributed to a successful handover and client satisfaction."
-      ]
-    },
-    {
-      "company": "Perunding Teguh",
-      "title": "Site Engineer",
-      "location": "Selangor",
-      "duration": "01/01/2021 \u2013 31/12/2023",
-      "details": [
-        "Supervised structural works for a residential housing project, ensuring compliance with safety regulations and quality standards, resulting in a 20% reduction in rework and a 15% increase in project efficiency.",
-        "Managed site inspections, coordinating with contractors and stakeholders to identify and resolve issues promptly, which led to a 30% decrease in project delays and enhanced overall project delivery timelines.",
-        "Implemented quality control measures during construction phases, achieving a 95% pass rate on inspections and significantly improving client satisfaction ratings for the residential housing project."
-      ]
-    },
-    {
-      "company": "Dinamik Consult",
-      "title": "Junior Engineer",
-      "location": "Johor Bahru",
-      "duration": "01/01/2019 \u2013 31/12/2021",
-      "details": [
-        "Assisted in civil design calculations, contributing to a 15% reduction in project costs through optimized material selection and efficient design methodologies.",
-        "Conducted detailed project costing analyses, enabling accurate budget forecasts that improved financial planning and reduced overruns by 20%.",
-        "Prepared comprehensive construction drawings that enhanced project clarity, resulting in a 30% decrease in on-site errors and rework during the construction phase."
-      ]
-    }
-  ],
-  "number_of_jobs": 3,
+  "experience": [],
+  "number_of_jobs": 0,
   "education": [
     {
       "level": "Bachelor of Civil Engineering",
@@ -73,7 +39,14 @@
     }
   ],
   "strength": [
-    "Proficient in designing and managing infrastructure projects, with strong analytical skills and a proven ability to collaborate effectively with multidisciplinary teams to deliver innovative and sustainable engineering solutions."
+    "Strong understanding of engineering principles and practices through academic coursework and projects.",
+    "Proficient in AutoCAD and other design software for creating detailed engineering plans.",
+    "Excellent problem-solving skills demonstrated through complex engineering project simulations.",
+    "Effective communication skills, capable of presenting technical information clearly to diverse audiences.",
+    "Team player with experience collaborating on group projects during academic studies.",
+    "Detail-oriented with a strong focus on accuracy in calculations and design specifications.",
+    "Knowledgeable in sustainable engineering practices and environmental impact assessments.",
+    "Eager to learn and adapt to new technologies and methodologies in civil engineering."
   ],
   "reference": [
     {
@@ -86,7 +59,7 @@
     {
       "name": "Pn. Alia Mazlan",
       "position": "Lecturer",
-      "company": "UTM Skudai",
+      "company": "UTM",
       "email": "alia.mazlan@utm.my",
       "telephone": ""
     }
@@ -123,7 +96,7 @@
   "extracurricular_activities": [
     {
       "title": "Vice President, UTM Civil Engineering Society",
-      "date": "01/01/2018 \u2013 31/12/2019",
+      "date": "2018/2019",
       "details": ""
     }
   ]

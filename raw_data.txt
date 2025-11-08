@@ -16,41 +16,8 @@
       "English": "professional"
     }
   ],
-  "experience": [
-    {
-      "company": "Cipta Bina Sdn Bhd",
-      "title": "Civil Engineer",
-      "location": "Kuala Lumpur",
-      "duration": "2023 \u2013 2025",
-      "details": [
-        "Led site operations for a multi-storey commercial project",
-        "Coordinated subcontractors",
-        "Ensured timely completion"
-      ]
-    },
-    {
-      "company": "Perunding Teguh",
-      "title": "Site Engineer",
-      "location": "Selangor",
-      "duration": "2021 \u2013 2023",
-      "details": [
-        "Supervised structural works",
-        "Managed site inspections for residential housing project"
-      ]
-    },
-    {
-      "company": "Dinamik Consult",
-      "title": "Junior Engineer",
-      "location": "Johor Bahru",
-      "duration": "2019 \u2013 2021",
-      "details": [
-        "Assisted in civil design calculations",
-        "Project costing",
-        "Preparation of construction drawings"
-      ]
-    }
-  ],
-  "number of jobs": 3,
+  "experience": [],
+  "number of jobs": 0,
   "education": [
     {
       "level": "Bachelor of Civil Engineering",
@@ -87,7 +54,7 @@
     {
       "name": "Pn. Alia Mazlan",
       "position": "Lecturer",
-      "company": "UTM Skudai",
+      "company": "UTM",
       "email": "alia.mazlan@utm.my",
       "telephone": ""
     }
@@ -117,7 +84,7 @@
     }
   ],
   "achievement": [
-    "Spearheaded a cost-saving initiative that reduced material waste by 18%, saving the company RM120,000 annually through improved inventory forecasting and supplier negotiations",
+    "Spearheaded a cost-saving initiative that reduced material waste by 18%, saving the company RM120,000 annually through improved inventory forecasting and supplier negotiations.",
     "Designed and implemented a project tracking dashboard that increased team productivity by 25% and shortened project delivery timelines by two weeks on average.",
     "Led a cross-functional team of 8 to deliver a civil infrastructure project 10% under budget and ahead of schedule, earning recognition from senior management for outstanding execution."
   ],
