@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, Plus, Minus, Send, User, Briefcase, GraduationCap, Award, Target, Users, Code, Heart, Star, Calendar } from 'lucide-react';
+import { Upload, Plus, Send, User, Briefcase, GraduationCap, Award, Target, Users, Code, Heart, Star, Calendar, ChevronDown, ChevronUp, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
 import { uploadImage, submitResume } from '../services/api';
+import { translations, Language as AppLanguage } from '../translations';
+import { generateJobProfile } from '../services/gemini';
 
 interface Experience {
   company: string;
@@ -10,7 +12,7 @@ interface Experience {
   details: string;
 }
 
-interface Language {
+interface LanguageProficiency {
   language: string;
   proficiency: string;
 }
@@ -35,7 +37,7 @@ interface FormData {
   title: string;
   about: string;
   image: File | null;
-  languages: Language[];
+  languages: LanguageProficiency[];
   experiences: Experience[];
   education: {
     degree: string;
@@ -59,10 +61,16 @@ interface FormData {
   language: string;
 }
 
-const ResumeForm: React.FC = () => {
+interface ResumeFormProps {
+  selectedTemplate: string;
+  selectedLanguage: AppLanguage;
+}
+
+const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLanguage }) => {
+  const t = translations[selectedLanguage].form;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<'English' | 'BM'>('English');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState({
     linkedin: false,
     languages: false,
@@ -163,11 +171,12 @@ const ResumeForm: React.FC = () => {
       );
       
       if (validExperiences.length === 0) {
-        return "No work experience";
+        return selectedLanguage === 'English' ? "No work experience" : "Tiada pengalaman kerja";
       }
       
+      const connector = selectedLanguage === 'English' ? 'at' : 'di';
       return validExperiences.map(exp => 
-        `${exp.title} at ${exp.company}, ${exp.location} (${exp.duration}): ${exp.details}`
+        `${exp.title} ${connector} ${exp.company}, ${exp.location} (${exp.duration}): ${exp.details}`
       ).join('; ');
     };
 
@@ -191,7 +200,7 @@ const ResumeForm: React.FC = () => {
 
     return {
       id: Math.floor(Math.random() * 10000),
-      template: "A",
+      template: selectedTemplate,
       gdrive_url: gdriveUrl,
       language_selected: selectedLanguage,
       user_image: "",
@@ -237,11 +246,11 @@ const ResumeForm: React.FC = () => {
       const submissionData = formatSubmissionData(gdriveUrl);
       await submitResume(submissionData);
       
-      alert('Resume submitted successfully!');
+      alert(selectedLanguage === 'English' ? 'Resume submitted successfully!' : 'Resume berjaya dihantar!');
       setShowReview(false);
     } catch (error) {
       console.error('Submission error:', error);
-      alert('Failed to submit resume. Please try again.');
+      alert(selectedLanguage === 'English' ? 'Failed to submit resume. Please try again.' : 'Gagal menghantar resume. Sila cuba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -252,6 +261,31 @@ const ResumeForm: React.FC = () => {
       ...prev,
       [field]: !prev[field]
     }));
+  };
+
+  const autofillWithAI = async () => {
+    if (!formData.title.trim()) {
+      alert(t.enterJobTitle);
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const profile = await generateJobProfile(formData.title, selectedLanguage);
+      
+      setFormData(prev => ({
+        ...prev,
+        about: profile.aboutMe,
+        technicalSkills: profile.technicalSkills,
+        softSkills: profile.softSkills,
+        strength: profile.strengths
+      }));
+    } catch (error) {
+      console.error('AI generation error:', error);
+      alert(t.aiError);
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   const autofillSkills = () => {
@@ -276,118 +310,140 @@ const ResumeForm: React.FC = () => {
   };
 
   const autofillAboutMe = () => {
-    const aboutMeExample = selectedLanguage === 'English' 
-      ? 'Experienced software developer with 3+ years of expertise in full-stack development. Passionate about creating innovative solutions and working in collaborative environments. Strong background in modern web technologies and agile methodologies.'
-      : 'Pembangun perisian berpengalaman dengan 3+ tahun kepakaran dalam pembangunan full-stack. Berminat untuk mencipta penyelesaian inovatif dan bekerja dalam persekitaran kolaboratif. Latar belakang yang kukuh dalam teknologi web moden dan metodologi agile.';
-    
     setFormData(prev => ({
       ...prev,
-      about: aboutMeExample
+      about: t.aboutMePlaceholder
     }));
   };
 
-  return (
-    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-yellow-200">
-      {/* Language Toggle */}
-      <div className="mb-6 flex justify-center">
-        <div className="bg-gray-100 p-1 rounded-lg flex">
-          <button
-            type="button"
-            onClick={() => setSelectedLanguage('English')}
-            className={`px-6 py-2 rounded-md transition-colors ${
-              selectedLanguage === 'English' 
-                ? 'bg-yellow-500 text-white shadow-md' 
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            English
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedLanguage('BM')}
-            className={`px-6 py-2 rounded-md transition-colors ${
-              selectedLanguage === 'BM' 
-                ? 'bg-yellow-500 text-white shadow-md' 
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            Bahasa Malaysia
-          </button>
-        </div>
-      </div>
+  const getSkillLevel = (percentage: number): string => {
+    if (percentage <= 25) return t.skillLevelBeginner;
+    if (percentage <= 50) return t.skillLevelIntermediate;
+    if (percentage <= 75) return t.skillLevelAdvanced;
+    return t.skillLevelExpert;
+  };
 
+  const getSkillLevelColor = (percentage: number): string => {
+    if (percentage <= 25) return 'text-blue-600 dark:text-blue-400';
+    if (percentage <= 50) return 'text-green-600 dark:text-green-400';
+    if (percentage <= 75) return 'text-orange-600 dark:text-orange-400';
+    return 'text-purple-600 dark:text-purple-400';
+  };
+
+  const resetForm = () => {
+    if (window.confirm(t.resetConfirm)) {
+      setFormData({
+        name: '',
+        address: '',
+        email: '',
+        telephone: '',
+        linkedin: '',
+        title: '',
+        about: '',
+        image: null,
+        languages: [{ language: '', proficiency: 'beginner' }],
+        experiences: [{ company: '', title: '', location: '', duration: '', details: '' }],
+        education: { degree: '', institution: '', cgpa: '', duration: '' },
+        strength: '',
+        reference: { name: '', position: '', company: '', contact: '' },
+        technicalSkills: [{ skill: '', percentage: 50 }],
+        softSkills: [{ skill: '', percentage: 50 }],
+        certifications: [''],
+        achievements: [''],
+        extracurricularActivities: [{ title: '', date: '', details: '' }],
+        location: '',
+        language: 'English'
+      });
+      setShowOptionalFields({
+        linkedin: false,
+        languages: false,
+        certifications: false,
+        achievements: false,
+        extracurricular: false,
+        reference: false
+      });
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-yellow-200 dark:border-gray-700">
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Information */}
-        <section className="border-b border-gray-200 pb-8">
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
           <div className="flex items-center mb-6">
-            <User className="w-6 h-6 text-yellow-600 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900">Basic Information</h2>
+            <User className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.basicInformation}</h2>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.fullName} *</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.jobTitleOptional}
+                <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">
+                  ✨ {selectedLanguage === 'English' ? 'AI-powered autofill available' : 'Isi automatik dengan AI tersedia'}
+                </span>
+              </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                placeholder="e.g., Software Engineer, Marketing Manager"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={t.jobTitleExample}
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.email} *</label>
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.phoneNumber} *</label>
               <input
                 type="tel"
                 required
                 value={formData.telephone}
                 onChange={(e) => handleInputChange('telephone', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
             
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.address} *</label>
               <input
                 type="text"
                 required
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
             
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.locationOptional}</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                placeholder="e.g., Kuala Lumpur, Malaysia"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={t.locationExample}
               />
             </div>
             
@@ -395,28 +451,32 @@ const ResumeForm: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleOptionalField('linkedin')}
-                className="text-yellow-600 hover:text-yellow-700 font-medium mb-2 flex items-center"
+                className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between mb-2"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Add LinkedIn Profile (Optional)
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.addLinkedIn}</span>
+                {showOptionalFields.linkedin ? (
+                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                )}
               </button>
               {showOptionalFields.linkedin && (
                 <input
                   type="text"
                   value={formData.linkedin}
                   onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                  placeholder="https://linkedin.com/in/yourprofile"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder={t.linkedInPlaceholder}
                 />
               )}
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.profileImage}</label>
               <div className="flex items-center space-x-4">
                 <label className="cursor-pointer bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg transition-colors flex items-center border border-yellow-200">
                   <Upload className="w-4 h-4 mr-2" />
-                  Choose File
+                  {t.chooseFile}
                   <input
                     type="file"
                     accept="image/*"
@@ -432,42 +492,374 @@ const ResumeForm: React.FC = () => {
             
             <div className="md:col-span-2">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">About Me</label>
-                <button
-                  type="button"
-                  onClick={autofillAboutMe}
-                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors"
-                >
-                  Auto Fill Example
-                </button>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.aboutMe}</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={autofillWithAI}
+                    disabled={isGeneratingAI}
+                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
+                        {t.generatingWithAI}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3" />
+                        {t.autoFillWithAI}
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={autofillAboutMe}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors"
+                  >
+                    {t.autoFillExample}
+                  </button>
+                </div>
               </div>
               <textarea
                 value={formData.about}
                 onChange={(e) => handleInputChange('about', e.target.value)}
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                placeholder={selectedLanguage === 'English' 
-                  ? "Brief description about yourself, your experience, and what makes you unique..." 
-                  : "Penerangan ringkas tentang diri anda, pengalaman anda, dan apa yang membuatkan anda unik..."}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={t.aboutMePlaceholder}
               />
             </div>
           </div>
         </section>
 
-        {/* Language Proficiency */}
-        <section className="border-b border-gray-200 pb-8">
+        {/* Work Experience */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <Target className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Language Proficiency</h2>
+              <Briefcase className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.workExperience}</h2>
             </div>
+            {formData.experiences.length < 3 && (
+              <button
+                type="button"
+                onClick={() => addArrayItem('experiences', { company: '', title: '', location: '', duration: '', details: '' })}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t.addExperience}
+              </button>
+            )}
+          </div>
+          
+          {formData.experiences.length === 0 || (formData.experiences.length === 1 && !formData.experiences[0].company.trim()) ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p>{t.noExperience}</p>
+            </div>
+          ) : null}
+          
+          {formData.experiences.map((exp, index) => (
+            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t.experience} {index + 1}</h3>
+                {formData.experiences.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem('experiences', index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    {t.delete}
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <input
+                  type="text"
+                  placeholder={t.companyName}
+                  value={exp.company}
+                  onChange={(e) => handleArrayInputChange('experiences', index, 'company', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.jobTitlePlaceholder}
+                  value={exp.title}
+                  onChange={(e) => handleArrayInputChange('experiences', index, 'title', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.locationPlaceholder}
+                  value={exp.location}
+                  onChange={(e) => handleArrayInputChange('experiences', index, 'location', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.durationPlaceholder}
+                  value={exp.duration}
+                  onChange={(e) => handleArrayInputChange('experiences', index, 'duration', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              
+              <textarea
+                placeholder={t.jobDetails}
+                value={exp.details}
+                onChange={(e) => handleArrayInputChange('experiences', index, 'details', e.target.value)}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+          ))}
+        </section>
+
+        {/* Education */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="flex items-center mb-6">
+            <GraduationCap className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.education}</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <input
+              type="text"
+              placeholder={t.degreePlaceholder}
+              value={formData.education.degree}
+              onChange={(e) => handleNestedInputChange('education', 'degree', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <input
+              type="text"
+              placeholder={t.institutionPlaceholder}
+              value={formData.education.institution}
+              onChange={(e) => handleNestedInputChange('education', 'institution', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <input
+              type="text"
+              placeholder={t.durationPlaceholder}
+              value={formData.education.duration}
+              onChange={(e) => handleNestedInputChange('education', 'duration', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <input
+              type="text"
+              placeholder={t.cgpaPlaceholder}
+              value={formData.education.cgpa}
+              onChange={(e) => handleNestedInputChange('education', 'cgpa', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+        </section>
+
+        {/* Strength */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="flex items-center mb-6">
+            <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.strengths}</h2>
+          </div>
+          
+          <textarea
+            value={formData.strength}
+            onChange={(e) => handleInputChange('strength', e.target.value)}
+            rows={4}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            placeholder={t.strengthsPlaceholder}
+          />
+        </section>
+
+        {/* Technical Skills */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Code className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.technicalSkills}</h2>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={autofillWithAI}
+                disabled={isGeneratingAI}
+                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3" />
+                    {t.autoFillWithAI}
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={autofillSkills}
+                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
+              >
+                {t.autoFillExamples}
+              </button>
+              {formData.technicalSkills.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => addArrayItem('technicalSkills', { skill: '', percentage: 50 })}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t.addSkill}
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+          {formData.technicalSkills.map((skill, index) => (
+            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center space-x-4 mb-2">
+                <input
+                  type="text"
+                  placeholder={t.technicalSkillsPlaceholder}
+                  value={skill.skill}
+                  onChange={(e) => handleArrayInputChange('technicalSkills', index, 'skill', e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                {formData.technicalSkills.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem('technicalSkills', index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
+                  >
+                    {t.delete}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={skill.percentage}
+                  onChange={(e) => handleArrayInputChange('technicalSkills', index, 'percentage', parseInt(e.target.value))}
+                  className="flex-1 accent-yellow-500 cursor-pointer"
+                />
+                <div className="flex items-center space-x-2 min-w-[140px]">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-right">{skill.percentage}%</span>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getSkillLevelColor(skill.percentage)} bg-opacity-10`}>
+                    {getSkillLevel(skill.percentage)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          </div>
+        </section>
+
+        {/* Soft Skills */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Heart className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.softSkills}</h2>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={autofillWithAI}
+                disabled={isGeneratingAI}
+                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3" />
+                    {t.autoFillWithAI}
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={autofillSkills}
+                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
+              >
+                {t.autoFillExamples}
+              </button>
+              {formData.softSkills.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => addArrayItem('softSkills', { skill: '', percentage: 50 })}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t.addSkill}
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+          {formData.softSkills.map((skill, index) => (
+            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center space-x-4 mb-2">
+                <input
+                  type="text"
+                  placeholder={t.softSkillsPlaceholder}
+                  value={skill.skill}
+                  onChange={(e) => handleArrayInputChange('softSkills', index, 'skill', e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                {formData.softSkills.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem('softSkills', index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
+                  >
+                    {t.delete}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={skill.percentage}
+                  onChange={(e) => handleArrayInputChange('softSkills', index, 'percentage', parseInt(e.target.value))}
+                  className="flex-1 accent-yellow-500 cursor-pointer"
+                />
+                <div className="flex items-center space-x-2 min-w-[140px]">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-right">{skill.percentage}%</span>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getSkillLevelColor(skill.percentage)} bg-opacity-10`}>
+                    {getSkillLevel(skill.percentage)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          </div>
+        </section>
+
+        {/* Language Proficiency */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="mb-6">
             <button
               type="button"
               onClick={() => toggleOptionalField('languages')}
-              className="text-yellow-600 hover:text-yellow-700 font-medium flex items-center"
+              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Languages (Optional)
+              <div className="flex items-center">
+                <Target className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.languageProficiency}</h2>
+              </div>
+              {showOptionalFields.languages ? (
+                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
             </button>
           </div>
           
@@ -480,28 +872,28 @@ const ResumeForm: React.FC = () => {
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Language
+                  {t.addLanguage}
                 </button>
               </div>
               
               {formData.languages.map((lang, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                   <input
                     type="text"
-                    placeholder="Language"
+                    placeholder={t.languagePlaceholder}
                     value={lang.language}
                     onChange={(e) => handleArrayInputChange('languages', index, 'language', e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                   <select
                     value={lang.proficiency}
                     onChange={(e) => handleArrayInputChange('languages', index, 'proficiency', e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="professional">Professional</option>
-                    <option value="native">Native</option>
+                    <option value="beginner">{t.beginner}</option>
+                    <option value="intermediate">{t.intermediate}</option>
+                    <option value="professional">{t.professional}</option>
+                    <option value="native">{t.native}</option>
                   </select>
                   {formData.languages.length > 1 && (
                     <button
@@ -509,7 +901,7 @@ const ResumeForm: React.FC = () => {
                       onClick={() => removeArrayItem('languages', index)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
-                      Delete
+                      {t.delete}
                     </button>
                   )}
                 </div>
@@ -518,287 +910,23 @@ const ResumeForm: React.FC = () => {
           )}
         </section>
 
-        {/* Work Experience */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Briefcase className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Work Experience</h2>
-            </div>
-            {formData.experiences.length < 3 && (
-              <button
-                type="button"
-                onClick={() => addArrayItem('experiences', { company: '', title: '', location: '', duration: '', details: '' })}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Experience
-              </button>
-            )}
-          </div>
-          
-          {formData.experiences.length === 0 || (formData.experiences.length === 1 && !formData.experiences[0].company.trim()) ? (
-            <div className="text-center py-8 text-gray-500 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p>No work experience yet? That's okay for fresh graduates!</p>
-            </div>
-          ) : null}
-          
-          {formData.experiences.map((exp, index) => (
-            <div key={index} className="bg-yellow-50 p-6 rounded-lg mb-4 border border-yellow-200">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Experience {index + 1}</h3>
-                {formData.experiences.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('experiences', index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <input
-                  type="text"
-                  placeholder="Company Name"
-                  value={exp.company}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'company', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Job Title"
-                  value={exp.title}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'title', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Location"
-                  value={exp.location}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'location', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Duration (e.g., Jan 2020 - Dec 2022)"
-                  value={exp.duration}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'duration', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-                />
-              </div>
-              
-              <textarea
-                placeholder="Job details and responsibilities..."
-                value={exp.details}
-                onChange={(e) => handleArrayInputChange('experiences', index, 'details', e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-              />
-            </div>
-          ))}
-        </section>
-
-        {/* Education */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center mb-6">
-            <GraduationCap className="w-6 h-6 text-yellow-600 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900">Education</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <input
-              type="text"
-              placeholder="e.g., Bachelor of Computer Science"
-              value={formData.education.degree}
-              onChange={(e) => handleNestedInputChange('education', 'degree', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., University of Technology Malaysia"
-              value={formData.education.institution}
-              onChange={(e) => handleNestedInputChange('education', 'institution', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., 2020 - 2024"
-              value={formData.education.duration}
-              onChange={(e) => handleNestedInputChange('education', 'duration', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., 3.75"
-              value={formData.education.cgpa}
-              onChange={(e) => handleNestedInputChange('education', 'cgpa', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-          </div>
-        </section>
-
-        {/* Strength */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center mb-6">
-            <Star className="w-6 h-6 text-yellow-600 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900">Strengths</h2>
-          </div>
-          
-          <textarea
-            value={formData.strength}
-            onChange={(e) => handleInputChange('strength', e.target.value)}
-            rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            placeholder="Describe your key strengths and what makes you unique..."
-          />
-        </section>
-
-        {/* Technical Skills */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Code className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Technical Skills</h2>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={autofillSkills}
-                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
-              >
-                Auto Fill Examples
-              </button>
-              {formData.technicalSkills.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('technicalSkills', { skill: '', percentage: 50 })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Skill
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-          {formData.technicalSkills.map((skill, index) => (
-            <div key={index} className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <div className="flex items-center space-x-4">
-              <input
-                type="text"
-                placeholder="e.g., JavaScript, Python, React"
-                value={skill.skill}
-                onChange={(e) => handleArrayInputChange('technicalSkills', index, 'skill', e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm"
-              />
-              <div className="flex items-center space-x-2 w-28">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={skill.percentage}
-                  onChange={(e) => handleArrayInputChange('technicalSkills', index, 'percentage', parseInt(e.target.value))}
-                  className="flex-1 accent-yellow-500"
-                />
-                <span className="text-xs font-medium w-8 text-gray-600">{skill.percentage}%</span>
-              </div>
-              {formData.technicalSkills.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeArrayItem('technicalSkills', index)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
-                >
-                  Delete
-                </button>
-              )}
-              </div>
-            </div>
-          ))}
-          </div>
-        </section>
-
-        {/* Soft Skills */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Heart className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Soft Skills</h2>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={autofillSkills}
-                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
-              >
-                Auto Fill Examples
-              </button>
-              {formData.softSkills.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('softSkills', { skill: '', percentage: 50 })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Skill
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-          {formData.softSkills.map((skill, index) => (
-            <div key={index} className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <div className="flex items-center space-x-4">
-              <input
-                type="text"
-                placeholder="e.g., Communication, Leadership, Teamwork"
-                value={skill.skill}
-                onChange={(e) => handleArrayInputChange('softSkills', index, 'skill', e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm"
-              />
-              <div className="flex items-center space-x-2 w-28">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={skill.percentage}
-                  onChange={(e) => handleArrayInputChange('softSkills', index, 'percentage', parseInt(e.target.value))}
-                  className="flex-1 accent-yellow-500"
-                />
-                <span className="text-xs font-medium w-8 text-gray-600">{skill.percentage}%</span>
-              </div>
-              {formData.softSkills.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeArrayItem('softSkills', index)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
-                >
-                  Delete
-                </button>
-              )}
-              </div>
-            </div>
-          ))}
-          </div>
-        </section>
-
         {/* Certifications */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Award className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Certifications</h2>
-            </div>
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="mb-6">
             <button
               type="button"
               onClick={() => toggleOptionalField('certifications')}
-              className="text-yellow-600 hover:text-yellow-700 font-medium flex items-center"
+              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Certifications (Optional)
+              <div className="flex items-center">
+                <Award className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.certifications}</h2>
+              </div>
+              {showOptionalFields.certifications ? (
+                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
             </button>
           </div>
           
@@ -811,18 +939,18 @@ const ResumeForm: React.FC = () => {
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Certification
+                  {t.addCertification}
                 </button>
               </div>
               
               {formData.certifications.map((cert, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                   <input
                     type="text"
-                    placeholder="e.g., AWS Certified Solutions Architect"
+                    placeholder={t.certificationPlaceholder}
                     value={cert}
                     onChange={(e) => handleSimpleArrayChange('certifications', index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                   {formData.certifications.length > 1 && (
                     <button
@@ -830,7 +958,7 @@ const ResumeForm: React.FC = () => {
                       onClick={() => removeArrayItem('certifications', index)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
-                      Delete
+                      {t.delete}
                     </button>
                   )}
                 </div>
@@ -840,19 +968,22 @@ const ResumeForm: React.FC = () => {
         </section>
 
         {/* Achievements */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Star className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Achievements</h2>
-            </div>
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="mb-6">
             <button
               type="button"
               onClick={() => toggleOptionalField('achievements')}
-              className="text-yellow-600 hover:text-yellow-700 font-medium flex items-center"
+              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Achievements (Optional)
+              <div className="flex items-center">
+                <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.achievements}</h2>
+              </div>
+              {showOptionalFields.achievements ? (
+                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
             </button>
           </div>
           
@@ -865,18 +996,18 @@ const ResumeForm: React.FC = () => {
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Achievement
+                  {t.addAchievement}
                 </button>
               </div>
               
               {formData.achievements.map((achievement, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                   <input
                     type="text"
-                    placeholder="e.g., Employee of the Year 2023"
+                    placeholder={t.achievementPlaceholder}
                     value={achievement}
                     onChange={(e) => handleSimpleArrayChange('achievements', index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                   {formData.achievements.length > 1 && (
                     <button
@@ -884,7 +1015,7 @@ const ResumeForm: React.FC = () => {
                       onClick={() => removeArrayItem('achievements', index)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
-                      Delete
+                      {t.delete}
                     </button>
                   )}
                 </div>
@@ -894,19 +1025,22 @@ const ResumeForm: React.FC = () => {
         </section>
 
         {/* Extracurricular Activities */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Calendar className="w-6 h-6 text-yellow-600 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900">Extracurricular Activities</h2>
-            </div>
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="mb-6">
             <button
               type="button"
               onClick={() => toggleOptionalField('extracurricular')}
-              className="text-yellow-600 hover:text-yellow-700 font-medium flex items-center"
+              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Activities (Optional)
+              <div className="flex items-center">
+                <Calendar className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.extracurricularActivities}</h2>
+              </div>
+              {showOptionalFields.extracurricular ? (
+                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
             </button>
           </div>
           
@@ -919,21 +1053,21 @@ const ResumeForm: React.FC = () => {
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Activity
+                  {t.addActivity}
                 </button>
               </div>
               
               {formData.extracurricularActivities.map((activity, index) => (
-                <div key={index} className="bg-yellow-50 p-6 rounded-lg mb-4 border border-yellow-200">
+                <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Activity {index + 1}</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t.activity} {index + 1}</h3>
                     {formData.extracurricularActivities.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeArrayItem('extracurricularActivities', index)}
                         className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
                       >
-                        Delete
+                        {t.delete}
                       </button>
                     )}
                   </div>
@@ -941,26 +1075,26 @@ const ResumeForm: React.FC = () => {
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <input
                       type="text"
-                      placeholder="e.g., Student Council President"
+                      placeholder={t.activityTitlePlaceholder}
                       value={activity.title}
                       onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'title', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                     <input
                       type="text"
-                      placeholder="e.g., 2022 - 2023"
+                      placeholder={t.activityDatePlaceholder}
                       value={activity.date}
                       onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'date', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                   
                   <textarea
-                    placeholder="Activity details and achievements..."
+                    placeholder={t.activityDetails}
                     value={activity.details}
                     onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'details', e.target.value)}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
               ))}
@@ -969,60 +1103,91 @@ const ResumeForm: React.FC = () => {
         </section>
 
         {/* Reference */}
-        <section className="border-b border-gray-200 pb-8">
-          <div className="flex items-center mb-6">
-            <Users className="w-6 h-6 text-yellow-600 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900">Reference (Optional)</h2>
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => toggleOptionalField('reference')}
+              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
+            >
+              <div className="flex items-center">
+                <Users className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.reference}</h2>
+              </div>
+              {showOptionalFields.reference ? (
+                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
+            </button>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-6">
-            <input
-              type="text"
-              placeholder="e.g., Dr. Sarah Johnson"
-              value={formData.reference.name}
-              onChange={(e) => handleNestedInputChange('reference', 'name', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., Senior Manager"
-              value={formData.reference.position}
-              onChange={(e) => handleNestedInputChange('reference', 'position', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., Tech Solutions Sdn Bhd"
-              value={formData.reference.company}
-              onChange={(e) => handleNestedInputChange('reference', 'company', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="e.g., sarah.johnson@techsolutions.com, +60123456789"
-              value={formData.reference.contact}
-              onChange={(e) => handleNestedInputChange('reference', 'contact', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
-            />
-          </div>
+          {showOptionalFields.reference && (
+            <>
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  {t.referenceExample}
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <input
+                  type="text"
+                  placeholder={t.referenceNamePlaceholder}
+                  value={formData.reference.name}
+                  onChange={(e) => handleNestedInputChange('reference', 'name', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.referencePositionPlaceholder}
+                  value={formData.reference.position}
+                  onChange={(e) => handleNestedInputChange('reference', 'position', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.referenceCompanyPlaceholder}
+                  value={formData.reference.company}
+                  onChange={(e) => handleNestedInputChange('reference', 'company', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="text"
+                  placeholder={t.referenceContactPlaceholder}
+                  value={formData.reference.contact}
+                  onChange={(e) => handleNestedInputChange('reference', 'contact', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            </>
+          )}
         </section>
 
-        {/* Submit Button */}
-        <div className="text-center pt-6">
+        {/* Submit and Reset Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+          <button
+            type="button"
+            onClick={resetForm}
+            className="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 flex items-center transform hover:scale-105 shadow-lg"
+          >
+            <RotateCcw className="w-5 h-5 mr-3" />
+            {t.resetForm}
+          </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 flex items-center mx-auto transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg"
+            className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 flex items-center transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg"
           >
             {isSubmitting ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                Submitting...
+                {t.submitting}
               </>
             ) : (
               <>
                 <Send className="w-5 h-5 mr-3" />
-                Submit Resume
+                {t.submitResume}
               </>
             )}
           </button>
@@ -1031,14 +1196,14 @@ const ResumeForm: React.FC = () => {
 
       {/* Review Popup */}
       {showReview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Review Your Resume</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.reviewTitle}</h2>
                 <button
                   onClick={() => setShowReview(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
                 >
                   ×
                 </button>
@@ -1046,60 +1211,60 @@ const ResumeForm: React.FC = () => {
               
               <div className="space-y-6">
                 {/* Basic Info */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Basic Information</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
-                    <div><strong>Name:</strong> {formData.name || 'Not provided'}</div>
-                    <div><strong>Job Title:</strong> {formData.title || 'Not provided'}</div>
-                    <div><strong>Email:</strong> {formData.email || 'Not provided'}</div>
-                    <div><strong>Phone:</strong> {formData.telephone || 'Not provided'}</div>
-                    <div><strong>Address:</strong> {formData.address || 'Not provided'}</div>
-                    <div><strong>Location:</strong> {formData.location || 'Not provided'}</div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.basicInformation}</h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm dark:text-gray-300">
+                    <div><strong>{t.name}:</strong> {formData.name || t.notProvided}</div>
+                    <div><strong>{t.jobTitleReview}:</strong> {formData.title || t.notProvided}</div>
+                    <div><strong>{t.email}:</strong> {formData.email || t.notProvided}</div>
+                    <div><strong>{t.phone}:</strong> {formData.telephone || t.notProvided}</div>
+                    <div><strong>{t.address}:</strong> {formData.address || t.notProvided}</div>
+                    <div><strong>{t.location}:</strong> {formData.location || t.notProvided}</div>
                     {formData.linkedin && <div><strong>LinkedIn:</strong> {formData.linkedin}</div>}
                   </div>
                 </div>
 
                 {/* About Me */}
                 {formData.about && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">About Me</h3>
-                    <p className="text-sm">{formData.about}</p>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.aboutMeReview}</h3>
+                    <p className="text-sm dark:text-gray-300">{formData.about}</p>
                   </div>
                 )}
 
                 {/* Education */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Education</h3>
-                  <div className="text-sm space-y-1">
-                    <div><strong>Degree:</strong> {formData.education.degree || 'Not provided'}</div>
-                    <div><strong>Institution:</strong> {formData.education.institution || 'Not provided'}</div>
-                    <div><strong>Duration:</strong> {formData.education.duration || 'Not provided'}</div>
-                    <div><strong>CGPA:</strong> {formData.education.cgpa || 'Not provided'}</div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.educationReview}</h3>
+                  <div className="text-sm space-y-1 dark:text-gray-300">
+                    <div><strong>{t.degreeReview}:</strong> {formData.education.degree || t.notProvided}</div>
+                    <div><strong>{t.institutionReview}:</strong> {formData.education.institution || t.notProvided}</div>
+                    <div><strong>{t.durationReview}:</strong> {formData.education.duration || t.notProvided}</div>
+                    <div><strong>{t.cgpa}:</strong> {formData.education.cgpa || t.notProvided}</div>
                   </div>
                 </div>
 
                 {/* Experience */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Work Experience</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.workExperienceReview}</h3>
                   {formData.experiences.filter(exp => exp.company.trim()).length > 0 ? (
                     formData.experiences.filter(exp => exp.company.trim()).map((exp, index) => (
-                      <div key={index} className="mb-3 text-sm">
-                        <div><strong>{exp.title}</strong> at {exp.company}</div>
+                      <div key={index} className="mb-3 text-sm dark:text-gray-300">
+                        <div><strong>{exp.title}</strong> {selectedLanguage === 'English' ? 'at' : 'di'} {exp.company}</div>
                         <div>{exp.location} • {exp.duration}</div>
                         <div>{exp.details}</div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-600">No work experience provided</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t.noWorkExperience}</p>
                   )}
                 </div>
 
                 {/* Skills */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Skills</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.skillsReview}</h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm dark:text-gray-300">
                     <div>
-                      <strong>Technical Skills:</strong>
+                      <strong>{t.technicalSkillsReview}:</strong>
                       <ul className="list-disc list-inside mt-1">
                         {formData.technicalSkills.filter(s => s.skill.trim()).map((skill, index) => (
                           <li key={index}>{skill.skill} ({skill.percentage}%)</li>
@@ -1107,7 +1272,7 @@ const ResumeForm: React.FC = () => {
                       </ul>
                     </div>
                     <div>
-                      <strong>Soft Skills:</strong>
+                      <strong>{t.softSkillsReview}:</strong>
                       <ul className="list-disc list-inside mt-1">
                         {formData.softSkills.filter(s => s.skill.trim()).map((skill, index) => (
                           <li key={index}>{skill.skill} ({skill.percentage}%)</li>
@@ -1119,9 +1284,9 @@ const ResumeForm: React.FC = () => {
 
                 {/* Other sections if they have content */}
                 {formData.languages.filter(l => l.language.trim()).length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Languages</h3>
-                    <div className="text-sm">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.languagesReview}</h3>
+                    <div className="text-sm dark:text-gray-300">
                       {formData.languages.filter(l => l.language.trim()).map((lang, index) => (
                         <div key={index}>{lang.language} ({lang.proficiency})</div>
                       ))}
@@ -1130,9 +1295,9 @@ const ResumeForm: React.FC = () => {
                 )}
 
                 {formData.certifications.filter(c => c.trim()).length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Certifications</h3>
-                    <ul className="list-disc list-inside text-sm">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.certificationsReview}</h3>
+                    <ul className="list-disc list-inside text-sm dark:text-gray-300">
                       {formData.certifications.filter(c => c.trim()).map((cert, index) => (
                         <li key={index}>{cert}</li>
                       ))}
@@ -1141,9 +1306,9 @@ const ResumeForm: React.FC = () => {
                 )}
 
                 {formData.achievements.filter(a => a.trim()).length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Achievements</h3>
-                    <ul className="list-disc list-inside text-sm">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.achievementsReview}</h3>
+                    <ul className="list-disc list-inside text-sm dark:text-gray-300">
                       {formData.achievements.filter(a => a.trim()).map((achievement, index) => (
                         <li key={index}>{achievement}</li>
                       ))}
@@ -1152,9 +1317,9 @@ const ResumeForm: React.FC = () => {
                 )}
 
                 {formData.extracurricularActivities.filter(a => a.title.trim()).length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Extracurricular Activities</h3>
-                    <div className="text-sm space-y-2">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.extracurricularActivitiesReview}</h3>
+                    <div className="text-sm space-y-2 dark:text-gray-300">
                       {formData.extracurricularActivities.filter(a => a.title.trim()).map((activity, index) => (
                         <div key={index}>
                           <div><strong>{activity.title}</strong> ({activity.date})</div>
@@ -1167,13 +1332,13 @@ const ResumeForm: React.FC = () => {
 
                 {/* Reference */}
                 {(formData.reference.name || formData.reference.position) && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Reference</h3>
-                    <div className="text-sm space-y-1">
-                      <div><strong>Name:</strong> {formData.reference.name}</div>
-                      <div><strong>Position:</strong> {formData.reference.position}</div>
-                      <div><strong>Company:</strong> {formData.reference.company}</div>
-                      <div><strong>Contact:</strong> {formData.reference.contact}</div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.referenceReview}</h3>
+                    <div className="text-sm space-y-1 dark:text-gray-300">
+                      <div><strong>{t.name}:</strong> {formData.reference.name}</div>
+                      <div><strong>{t.positionReview}:</strong> {formData.reference.position}</div>
+                      <div><strong>{t.companyReview}:</strong> {formData.reference.company}</div>
+                      <div><strong>{t.contactReview}:</strong> {formData.reference.contact}</div>
                     </div>
                   </div>
                 )}
@@ -1182,9 +1347,9 @@ const ResumeForm: React.FC = () => {
               <div className="flex justify-end space-x-4 mt-8">
                 <button
                   onClick={() => setShowReview(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-300"
                 >
-                  Back to Edit
+                  {t.backToEdit}
                 </button>
                 <button
                   onClick={handleFinalSubmit}
@@ -1194,15 +1359,50 @@ const ResumeForm: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Submitting...
+                      {t.submitting}
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4 mr-2" />
-                      Submit Resume
+                      {t.submitResume}
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Loading Modal */}
+      {isGeneratingAI && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform animate-pulse">
+            <div className="flex flex-col items-center space-y-6">
+              {/* Animated Spinner */}
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-yellow-200 dark:border-yellow-900 rounded-full"></div>
+                <div className="w-20 h-20 border-4 border-yellow-500 dark:border-yellow-400 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                <Loader2 className="w-10 h-10 text-yellow-500 dark:text-yellow-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+              </div>
+              
+              {/* Loading Text */}
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {t.generatingWithAI}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {selectedLanguage === 'English' 
+                    ? 'Creating personalized content for your resume...' 
+                    : 'Membuat kandungan diperibadikan untuk resume anda...'}
+                </p>
+              </div>
+              
+              {/* Animated Dots */}
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             </div>
           </div>
