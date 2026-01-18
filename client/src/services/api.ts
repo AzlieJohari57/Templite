@@ -1,53 +1,63 @@
-// Mock API service for resume submission
-export const uploadImage = async (imageFile: File): Promise<{ gdrive_url: string }> => {
-  // Simulate image upload to Google Drive
+// API base URL - adjust this based on your backend server
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+// Response type from create-resume endpoint
+export interface CreateResumeResponse {
+  success: boolean;
+  message: string;
+  pdf_path: string;
+  html_path: string;
+}
+
+// Upload image and return URL (mock for now - implement actual upload if needed)
+export const uploadImage = async (imageFile: File): Promise<{ image_url: string }> => {
+  // For now, return a placeholder path
+  // In production, you'd upload to a server or cloud storage
   const formData = new FormData();
   formData.append('image', imageFile);
-  
+
   try {
-    // Mock API call - in real implementation, this would upload to your backend
-    // which then uploads to Google Drive
-    const response = await fetch('/api/upload', {
+    const response = await fetch(`${API_BASE_URL}/upload-image`, {
       method: 'POST',
       body: formData,
     });
-    
+
     if (!response.ok) {
       throw new Error('Image upload failed');
     }
-    
-    // Mock response - in real implementation, your backend would return the actual Google Drive URL
-    return {
-      gdrive_url: `https://drive.google.com/open?id=${Math.random().toString(36).substr(2, 9)}`
-    };
+
+    const data = await response.json();
+    return { image_url: data.image_url };
   } catch (error) {
     console.error('Image upload error:', error);
-    // Return mock URL for demo purposes
-    return {
-      gdrive_url: `https://drive.google.com/open?id=mock_${Date.now()}`
-    };
+    // Return placeholder path if upload fails
+    return { image_url: `../images/${Date.now()}.png` };
   }
 };
 
-export const submitResume = async (resumeData: any): Promise<void> => {
+// Submit resume data to create-resume endpoint
+export const submitResume = async (resumeData: any): Promise<CreateResumeResponse> => {
   try {
-    const response = await fetch('/api/submit-resume', {
+    console.log('Submitting resume data:', JSON.stringify(resumeData, null, 2));
+
+    const response = await fetch(`${API_BASE_URL}/create-resume`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(resumeData),
     });
-    
+
     if (!response.ok) {
-      throw new Error('Resume submission failed');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Resume creation failed');
     }
-    
-    console.log('Resume submitted successfully:', resumeData);
+
+    const result: CreateResumeResponse = await response.json();
+    console.log('Resume created successfully:', result);
+    return result;
   } catch (error) {
     console.error('Resume submission error:', error);
-    // For demo purposes, we'll log the data that would be submitted
-    console.log('Mock submission data:', resumeData);
     throw error;
   }
 };

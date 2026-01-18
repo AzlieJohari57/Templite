@@ -8,57 +8,36 @@
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
+        @media print {
+            body {
+                font-size: 10px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-container {
+                height: auto;
+                max-height: none;
+            }
+            .page-break { page-break-before: always; }
+            .break-inside-avoid { break-inside: avoid; }
+            .avoid-page-break { page-break-inside: avoid; }
+        }
+        body { font-size: 10px; }
+
         @page {
             size: A4;
             margin: 0.5in;
         }
-        
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .page-break {
-                page-break-before: always;
-            }
-        }
-        
-        /* Custom styles for better PDF rendering */
-        .progress-container {
-            margin-bottom: 8px;
-        }
-        
-        .progress-bar {
-            background-color: #e5e7eb;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            background-color: #9e786f;
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        /* Ensure proper spacing for single page */
-        .compact-spacing {
-            line-height: 1.3;
-        }
-        
-        .compact-list li {
-            margin-bottom: 2px;
-        }
     </style>
 </head>
-<body class="bg-white font-sans m-0 p-0 text-black compact-spacing">
-    <div class="w-full min-h-screen grid grid-cols-3 gap-0">
+<body class="bg-white font-sans m-0 p-0 text-black print-container">
+            <div class="w-full min-h-screen grid grid-cols-3 gap-3 p-3">
         <!-- Left Column -->
-        <div class="col-span-1 p-4 space-y-4 bg-white">
-            <img src="{{ image or 'https://randomuser.me/api/portraits/men/1.jpg' }}" alt="{{ name }}" class="w-full h-auto border-4 border-gray-300" />
-
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">CONTACT</div>
-            <div class="space-y-1 text-sm">
+        <div class="col-span-1 space-y-1.5 bg-white">
+            <!-- <img src="{{ image or 'https://randomuser.me/api/portraits/men/1.jpg' }}" alt="{{ name }}" class="w-3/4 h-auto border-4 border-gray-300 mx-auto" /> -->
+            <div class="w-20 h-20 rounded-full border-4 border-white object-cover mb-2"></div>
+            <div class="text-[#d8ac9c] font-bold text-base border-b border-[#d8ac9c] pb-1 mb-1 mt-1">CONTACT</div>
+            <div class="space-y-0 text-base">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-phone text-xs"></i>
                     <span>{{ telephone }}</span>
@@ -79,38 +58,33 @@
                 {% endif %}
             </div>
 
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">TECHNICAL SKILLS</div>
-            {% for skill, level in skills.technical_skills.items() %}
-            <div class="progress-container">
-                <div class="text-xs mb-1">{{ skill }}</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ level }}%"></div>
+            <div class="text-[#d8ac9c] font-bold text-lg border-b border-[#d8ac9c] pb-1 mb-1 mt-1">TECHNICAL SKILLS</div>
+            <div class="space-y-0.5">
+                {% for skill, level in skills.technical_skills.items() %}
+                <div class="mb-0.5">
+                    <div class="text-xs font-medium text-gray-700 mb-0.5">{{ skill }}</div>
+                    <div class="w-1/2 bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-gray-800 h-1.5 rounded-full" style="width: {{ level }}%;"></div>
+                    </div>
                 </div>
-            </div>
-            {% endfor %}
-
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">SOFT SKILLS</div>
-            {% for trait, score in skills.soft_skills.items() %}
-            <div class="progress-container">
-                <div class="text-xs mb-1">{{ trait }}</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ score }}%"></div>
-                </div>
-            </div>
-            {% endfor %}
-
-            {% if certification %}
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">CERTIFICATIONS</div>
-            <ul class="text-xs space-y-1 compact-list">
-                {% for cert in certification %}
-                <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
                 {% endfor %}
-            </ul>
-            {% endif %}
+            </div>
+
+            <div class="text-[#d8ac9c] font-bold text-lg border-b border-[#d8ac9c] pb-1 mb-1 mt-1">SOFT SKILLS</div>
+            <div class="space-y-0.5">
+                {% for trait, score in skills.soft_skills.items() %}
+                <div class="mb-0.5">
+                    <div class="text-xs font-medium text-gray-700 mb-0.5">{{ trait }}</div>
+                    <div class="w-1/2 bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-gray-800 h-1.5 rounded-full" style="width: {{ score }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
             {% if language %}
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">LANGUAGES</div>
-            <ul class="text-xs space-y-1 compact-list">
+            <div class="text-[#d8ac9c] font-bold text-lg border-b border-[#d8ac9c] pb-1 mb-1 mt-1">LANGUAGES</div>
+            <ul class="text-xs space-y-0">
                 {% for lang in language %}
                     {% for k, v in lang.items() %}
                     <li><strong>{{ k }}:</strong> {{ v|capitalize }}</li>
@@ -119,12 +93,33 @@
             </ul>
             {% endif %}
 
+            {% if certification %}
+            <div class="text-[#d8ac9c] font-bold text-lg border-b border-[#d8ac9c] pb-1 mb-1 mt-1">CERTIFICATIONS</div>
+            <ul class="text-xs space-y-0">
+                {% for cert in certification %}
+                <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="text-[#d8ac9c] font-bold text-base border-b border-[#d8ac9c] pb-1 mb-0.5 mt-1">EDUCATION</div>
+            <ul class="text-xs space-y-0">
+                {% for edu in education %}
+                <li class="break-inside-avoid avoid-page-break mb-1">
+                    <p class="font-bold">{{ edu.institution }}</p>
+                    {% if edu.duration %}<p class="text-gray-600">{{ edu.duration }}</p>{% endif %}
+                    <p class="text-gray-700">{{ edu.level }}</p>
+                    {% if edu.details %}<p class="text-xs text-gray-600">{{ edu.details }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+
             {# References on left side only if no achievements and no extracurricular activities #}
             {% if not achievement and not extracurricular_activities %}
-            <div class="text-[#9e786f] font-bold text-base border-b border-[#9e786f] pb-1">REFERENCE</div>
-            <div class="text-xs space-y-3">
+            <div class="text-[#d8ac9c] font-bold text-lg border-b border-[#d8ac9c] pb-1 mb-1 mt-1">REFERENCE</div>
+            <div class="text-xs space-y-1">
                 {% for ref in reference %}
-                <div>
+                <div class="break-inside-avoid avoid-page-break">
                     <p class="font-bold">{{ ref.name }}</p>
                     <p>{{ ref.position }}</p>
                     <p>{{ ref.company }}</p>
@@ -137,54 +132,53 @@
         </div>
 
         <!-- Right Column -->
-        <div class="col-span-2 p-4 space-y-4 bg-white">
+        <div class="col-span-2 space-y-2 bg-white">
             <div class="flex items-baseline space-x-4">
-                <div class="w-1 h-10 bg-black"></div>
+                <div class="w-1 h-10 bg-[#d8ac9c] mt-1"></div>
                 <div>
                     <h1 class="text-2xl font-semibold leading-tight">{{ name.split()[0] if name.split()|length > 1 else name }}</h1>
                     {% if name.split()|length > 1 %}
-                    <h2 class="text-xl font-semibold bg-[#b98e82] text-white px-2">{{ name.split()[1:] | join(' ') }}</h2>
+                    <h2 class="text-xl font-semibold bg-[#d8ac9c] text-white px-5 py-3">{{ name.split()[1:] | join(' ') }}</h2>
                     {% endif %}
                     <p class="text-base text-gray-600 mt-1">{{ title }}</p>
                 </div>
             </div>
 
-            <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">ABOUT ME</h3>
-                <p class="text-sm text-justify">{{ about }}</p>
+            <div class="break-inside-avoid avoid-page-break">
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">ABOUT ME</h3>
+                <p class="text-sm text-justify leading-snug">{{ about }}</p>
             </div>
 
             {# Work Experience Logic - Dynamic details based on number of companies #}
             {% if experience %}
             <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">EXPERIENCE</h3>
-                <div class="text-sm space-y-3">
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">EXPERIENCE</h3>
+                <div class="space-y-1.5">
                     {% set exp_count = experience|length %}
                     {% for job in experience %}
-                    <div>
-                        <p class="font-bold">{{ job.company }}</p>
-                        <p class="text-gray-600">{{ job.title }}, {{ job.duration }}</p>
-                        {% if job.location %}<p class="text-gray-500 text-xs">{{ job.location }}</p>{% endif %}
-                        <ul class="list-disc list-inside ml-4 compact-list">
+                    <div class="break-inside-avoid avoid-page-break">
+                        <h4 class="text-base font-semibold">{{ job.company }}</h4>
+                        <p class="text-xs italic text-gray-600">{{ job.title }} – {{ job.location }} ({{ job.duration }})</p>
+                        <ul class="list-disc list-inside text-sm mt-0.5 space-y-0">
                             {% if exp_count == 3 %}
                                 {# 3 companies = 3 details each #}
                                 {% for bullet in job.details[:3] %}
-                                <li class="text-xs">{{ bullet }}</li>
+                                <li>{{ bullet }}</li>
                                 {% endfor %}
                             {% elif exp_count == 2 %}
                                 {# 2 companies = 4 details each #}
                                 {% for bullet in job.details[:4] %}
-                                <li class="text-xs">{{ bullet }}</li>
+                                <li>{{ bullet }}</li>
                                 {% endfor %}
                             {% elif exp_count == 1 %}
-                                {# 1 company = 8 details #}
-                                {% for bullet in job.details[:8] %}
-                                <li class="text-xs">{{ bullet }}</li>
+                                {# 1 company = 6 details (reduced from 8) #}
+                                {% for bullet in job.details[:6] %}
+                                <li>{{ bullet }}</li>
                                 {% endfor %}
                             {% else %}
                                 {# Default case - show all available details #}
                                 {% for bullet in job.details %}
-                                <li class="text-xs">{{ bullet }}</li>
+                                <li>{{ bullet }}</li>
                                 {% endfor %}
                             {% endif %}
                         </ul>
@@ -193,41 +187,28 @@
                 </div>
             </div>
             {% else %}
-            {# No work experience = generate 8 strengths #}
-            <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">STRENGTHS</h3>
-                <ul class="text-sm list-disc list-inside space-y-1 compact-list">
-                    {% for s in strength[:8] %}
+            {# No work experience = generate 6 strengths (reduced from 8) #}
+            <div class="break-inside-avoid avoid-page-break">
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">STRENGTHS</h3>
+                <ul class="text-sm list-disc list-inside space-y-0">
+                    {% for s in strength[:6] %}
                     <li>{{ s }}</li>
                     {% endfor %}
                 </ul>
             </div>
             {% endif %}
-
-            <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-2">EDUCATION</h3>
-                <ul class="text-sm space-y-2 compact-list">
-                    {% for edu in education %}
-                    <li>
-                        <p class="font-bold">{{ edu.institution }}</p>
-                        {% if edu.duration %}<p class="text-gray-600">{{ edu.duration }}</p>{% endif %}
-                        <p class="text-gray-700">{{ edu.level }}</p>
-                        {% if edu.details %}<p class="text-xs text-gray-600">{{ edu.details }}</p>{% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
         </div>
     </div>
 
     {# Second Page Logic - Show if achievements OR extracurricular activities exist #}
-    {% if achievement or extracurricular_activities %}
-    <div class="page-break w-full min-h-screen p-8 bg-white">
-        <div class="space-y-6">
+    {% if achievement or extracurricular_activities or (experience and experience|length > 0) %}
+    <div class="page-break"></div>
+    <div class="w-full min-h-screen p-4 bg-white">
+        <div class="space-y-2">
             {% if achievement %}
             <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">ACHIEVEMENTS</h3>
-                <ul class="text-sm list-disc list-inside space-y-2 compact-list">
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">ACHIEVEMENTS</h3>
+                <ul class="text-sm list-disc list-inside space-y-0">
                     {% for item in achievement %}
                     <li>{{ item }}</li>
                     {% endfor %}
@@ -237,8 +218,8 @@
 
             {% if extracurricular_activities %}
             <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">EXTRACURRICULAR ACTIVITIES</h3>
-                <ul class="text-sm list-disc list-inside space-y-2 compact-list">
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">EXTRACURRICULAR ACTIVITIES</h3>
+                <ul class="text-sm list-disc list-inside space-y-0">
                     {% for activity in extracurricular_activities %}
                     <li>
                         <strong>{{ activity.title }}</strong> ({{ activity.date }})
@@ -250,7 +231,7 @@
             {% endif %}
 
             <div>
-                <h3 class="text-lg font-semibold border-b border-gray-400 pb-1 mb-3">REFERENCES</h3>
+                <h3 class="text-lg font-bold border-b border-gray-400 pb-1 mb-1 mt-1">REFERENCES</h3>
                 <div class="grid grid-cols-2 gap-6 text-sm">
                     {% for ref in reference %}
                     <div class="space-y-1">

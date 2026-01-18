@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ name }} - Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                height: auto;
+                overflow: visible;
+                font-size: 9px;
+                line-height: 1.2;
+                margin: 0;
+                padding: 0;
+            }
+            .print-container {
+                height: auto;
+                max-height: none;
+                padding: 0.75in 1.25in;
+                max-width: none;
+                margin: 0;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .break-inside-avoid {
+                break-inside: avoid;
+            }
+            .avoid-page-break {
+                page-break-inside: avoid;
+            }
+        }
+        body {
+            font-size: 9px;
+            line-height: 1.2;
+        }
+        .section-border {
+            border-bottom: 1.5px solid #000;
+        }
+    </style>
+</head>
+<body class="bg-white text-black font-sans">
+    <!-- Jinja2 Conditional Logic Variables -->
+    {% set has_achievement = achievement is defined and achievement|length > 0 %}
+    {% set has_extracurricular = extracurricular_activities is defined and extracurricular_activities|length > 0 %}
+    {% set has_reference = references is defined and references|length > 0 %}
+    {% set is_two_page = has_achievement or has_extracurricular %}
+    
+    <div class="print-container max-w-4xl mx-auto px-8 py-4">
+        <!-- Header Section -->
+        <div class="text-center mb-2 section-border pb-1 break-inside-avoid">
+            <h1 class="text-xl font-bold uppercase tracking-wide mb-0">{{ name }}</h1>
+            {% if title %}
+            <div class="text-sm italic mb-1 text-gray-700">{{ title }}</div>
+            {% endif %}
+            <div class="text-xs leading-tight">
+                {% if address %}{{ address }}{% endif %}
+                {% if email %}{% if address %} | {% endif %}{{ email }}{% endif %}
+                {% if telephone %}{% if email or address %} | {% endif %}{{ telephone }}{% endif %}
+                {% if linkedin %}{% if telephone or email or address %} | {% endif %}{{ linkedin }}{% endif %}
+            </div>
+        </div>
+
+        <!-- Single Column ATS Layout -->
+        <div class="space-y-1 px-2">
+            <!-- Professional Summary -->
+            {% if about %}
+            <div class="break-inside-avoid mb-1">
+                <h2 class="text-sm font-bold uppercase section-border pb-0 mb-1">PROFESSIONAL SUMMARY</h2>
+                <p class="text-xs leading-tight text-justify px-1">{{ about }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Skills Section -->
+            {% if skills %}
+            <div class="break-inside-avoid mb-1">
+                <h2 class="text-sm font-bold uppercase section-border pb-0 mb-1">SKILLS</h2>
+                <div class="grid grid-cols-2 gap-4 text-xs px-1">
+                    {% if skills.technical_skills %}
+                    <div>
+                        <h3 class="font-bold mb-0 text-xs">Technical Skills:</h3>
+                        <ul class="list-none space-y-0 ml-3 text-xs">
+                            {% for skill, level in skills.technical_skills.items() %}
+                            <li class="mb-0">• {{ skill }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if skills.soft_skills %}
+                    <div>
+                        <h3 class="font-bold mb-0 text-xs">Soft Skills:</h3>
+                        <ul class="list-none space-y-0 ml-3 text-xs">
+                            {% for trait, score in skills.soft_skills.items() %}
+                            <li class="mb-0">• {{ trait }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Professional Experience with Conditional Bullets -->
+            {% if experience and experience|length > 0 %}
+            <div class="break-inside-avoid mb-1">
+                <h2 class="text-sm font-bold uppercase section-border pb-0 mb-1">PROFESSIONAL EXPERIENCE</h2>
+                
+                <div class="px-1">
+                    {% for job in experience %}
+                    <div class="mb-1 avoid-page-break">
+                        <div class="text-xs font-bold">{{ job.title }}</div>
+                        <div class="text-xs mb-0 text-gray-700 italic">{{ job.company }} | {{ job.duration }}{% if job.location %} | {{ job.location }}{% endif %}</div>
+                        {% if job.details %}
+                        <ul class="text-xs list-none ml-4 mt-0">
+                            {% if experience|length == 3 %}
+                                {% for detail in job.details[:3] %}
+                                <li class="mb-0">• {{ detail }}</li>
+                                {% endfor %}
+                            {% elif experience|length == 2 %}
+                                {% for detail in job.details[:4] %}
+                                <li class="mb-0">• {{ detail }}</li>
+                                {% endfor %}
+                            {% elif experience|length == 1 %}
+                                {% for detail in job.details[:6] %}
+                                <li class="mb-0">• {{ detail }}</li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Key Strengths (if no experience) -->
+            {% if not (experience and experience|length > 0) and strength %}
+            <div class="break-inside-avoid mb-1">
+                <h2 class="text-sm font-bold uppercase section-border pb-0 mb-1">KEY STRENGTHS</h2>
+                <ul class="text-xs list-none ml-4 px-1">
+                    {% for strength_item in strength[:6] %}
+                    <li class="mb-0">• {{ strength_item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Education -->
+            {% if education %}
+            <div class="break-inside-avoid mb-2">
+                <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">EDUCATION</h2>
+                <div class="px-1">
+                    {% for edu in education %}
+                    <div class="mb-2">
+                        <div class="text-sm font-bold">{{ edu.institution }}</div>
+                        <div class="text-sm text-gray-700">{{ edu.level }}{% if edu.duration %} | {{ edu.duration }}{% endif %}</div>
+                        {% if edu.details %}
+                        <div class="text-sm">{{ edu.details }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Certifications -->
+            {% if certification %}
+            <div class="break-inside-avoid mb-2">
+                <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">CERTIFICATIONS</h2>
+                <ul class="text-sm list-none ml-5 px-1">
+                    {% for cert in certification %}
+                    <li class="mb-1">• {{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}{% if cert.date %}, {{ cert.date }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Languages -->
+            {% if language %}
+            <div class="break-inside-avoid mb-2">
+                <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">LANGUAGES</h2>
+                <ul class="text-sm list-none ml-5 px-1">
+                    {% for lang in language %}
+                        {% for k, v in lang.items() %}
+                        <li class="mb-1">• <strong>{{ k }}:</strong> {{ v|capitalize }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- DEBUG: References should show here -->
+            <!-- Check if references exist: {{ references }} -->
+            <!-- has_reference: {{ has_reference }} -->
+            <!-- is_two_page: {{ is_two_page }} -->
+            
+            <!-- References (Page 1 - SIMPLIFIED LOGIC) -->
+            {% if references %}
+            <div class="break-inside-avoid mb-2">
+                <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">REFERENCES</h2>
+                <div class="grid grid-cols-2 gap-6 px-1">
+                    {% for ref in references %}
+                    <div class="text-sm">
+                        <div class="font-bold">{{ ref.name }}</div>
+                        <div class="text-gray-700">{{ ref.position }}</div>
+                        <div class="text-gray-700">{{ ref.company }}</div>
+                        {% if ref.email %}<div>{{ ref.email }}</div>{% endif %}
+                        {% if ref.telephone %}<div>{{ ref.telephone }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- PAGE 2: Only if achievements or extracurricular exist -->
+        {% if is_two_page %}
+        <div class="page-break">
+            <div class="px-2">
+                <!-- Achievements -->
+                {% if has_achievement %}
+                <div class="break-inside-avoid mb-2 mt-3">
+                    <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">ACHIEVEMENTS</h2>
+                    <ul class="text-sm list-none ml-5 px-1">
+                        {% for item in achievement %}
+                        <li class="mb-1">• {{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Extracurricular Activities -->
+                {% if has_extracurricular %}
+                <div class="break-inside-avoid mb-2">
+                    <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">EXTRACURRICULAR ACTIVITIES</h2>
+                    <ul class="text-sm list-none ml-5 px-1">
+                        {% for activity in extracurricular_activities %}
+                        <li class="mb-1">• <strong>{{ activity.title }}</strong> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- References (Page 2) - FORCE SHOW -->
+                {% if references %}
+                <div class="break-inside-avoid mb-2">
+                    <h2 class="text-base font-bold uppercase section-border pb-1 mb-2">REFERENCES</h2>
+                    <div class="grid grid-cols-2 gap-6 px-1">
+                        {% for ref in references %}
+                        <div class="text-sm">
+                            <div class="font-bold">{{ ref.name }}</div>
+                            <div class="text-gray-700">{{ ref.position }}</div>
+                            <div class="text-gray-700">{{ ref.company }}</div>
+                            {% if ref.email %}<div>{{ ref.email }}</div>{% endif %}
+                            {% if ref.telephone %}<div>{{ ref.telephone }}</div>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

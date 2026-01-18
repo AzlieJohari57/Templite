@@ -157,72 +157,142 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     }
   };
 
-  const formatSubmissionData = (gdriveUrl: string) => {
+  const formatSubmissionData = (imageUrl: string) => {
+    // Format languages as array of objects: [{"English": "professional"}, ...]
     const formatLanguages = () => {
       return formData.languages
         .filter(lang => lang.language.trim())
-        .map(lang => `${lang.language} ${lang.proficiency}`)
-        .join(', ');
+        .map(lang => ({ [lang.language]: lang.proficiency }));
     };
 
+    // Format experiences as array of objects
     const formatExperiences = () => {
-      const validExperiences = formData.experiences.filter(exp => 
-        exp.company.trim() || exp.title.trim() || exp.details.trim()
-      );
-      
-      if (validExperiences.length === 0) {
-        return selectedLanguage === 'English' ? "No work experience" : "Tiada pengalaman kerja";
-      }
-      
-      const connector = selectedLanguage === 'English' ? 'at' : 'di';
-      return validExperiences.map(exp => 
-        `${exp.title} ${connector} ${exp.company}, ${exp.location} (${exp.duration}): ${exp.details}`
-      ).join('; ');
+      return formData.experiences
+        .filter(exp => exp.company.trim() || exp.title.trim())
+        .map(exp => ({
+          company: exp.company,
+          title: exp.title,
+          location: exp.location,
+          duration: exp.duration,
+          details: exp.details.split('\n').filter(d => d.trim())
+        }));
     };
 
-    const formatSkills = (skills: Skill[]) => {
-      return skills
+    // Format skills as nested object: { "technical skills": { "AutoCAD": 30 }, "soft skills": { "Leadership": 20 } }
+    const formatSkills = () => {
+      const technicalSkills: Record<string, number> = {};
+      const softSkills: Record<string, number> = {};
+
+      formData.technicalSkills
         .filter(skill => skill.skill.trim())
-        .map(skill => `${skill.skill} ${skill.percentage}%`)
-        .join(', ');
+        .forEach(skill => {
+          technicalSkills[skill.skill] = skill.percentage;
+        });
+
+      formData.softSkills
+        .filter(skill => skill.skill.trim())
+        .forEach(skill => {
+          softSkills[skill.skill] = skill.percentage;
+        });
+
+      return {
+        "technical skills": technicalSkills,
+        "soft skills": softSkills
+      };
     };
 
-    const formatList = (items: string[]) => {
-      return items.filter(item => item.trim()).join(', ');
+    // Format certifications as array of objects
+    const formatCertifications = () => {
+      return formData.certifications
+        .filter(cert => cert.trim())
+        .map(cert => ({
+          title: cert,
+          issuer: "",
+          date: ""
+        }));
     };
 
+    // Format education as array of objects
+    const formatEducation = () => {
+      if (!formData.education.degree && !formData.education.institution) {
+        return [];
+      }
+      return [{
+        level: formData.education.degree,
+        institution: formData.education.institution,
+        duration: formData.education.duration,
+        grade: formData.education.cgpa
+      }];
+    };
+
+    // Format reference as array of objects
+    const formatReference = () => {
+      if (!formData.reference.name) {
+        return [];
+      }
+      return [{
+        name: formData.reference.name,
+        position: formData.reference.position,
+        company: formData.reference.company,
+        email: "",
+        telephone: formData.reference.contact
+      }];
+    };
+
+    // Format extracurricular activities as array of objects
     const formatExtracurricular = () => {
       return formData.extracurricularActivities
         .filter(activity => activity.title.trim())
-        .map(activity => `${activity.title} (${activity.date}): ${activity.details}`)
-        .join(', ');
+        .map(activity => ({
+          title: activity.title,
+          date: activity.date,
+          details: activity.details
+        }));
     };
 
+    // Format strength as array of strings
+    const formatStrength = () => {
+      return formData.strength
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s);
+    };
+
+    // Format achievements as array of strings
+    const formatAchievements = () => {
+      return formData.achievements.filter(a => a.trim());
+    };
+
+    // Count number of valid job experiences
+    const numberOfJobs = formData.experiences.filter(
+      exp => exp.company.trim() || exp.title.trim()
+    ).length;
+
+    // Build the final submission object matching the expected JSON structure
     return {
-      id: Math.floor(Math.random() * 10000),
+      language: selectedLanguage,
       template: selectedTemplate,
-      gdrive_url: gdriveUrl,
-      language_selected: selectedLanguage,
-      user_image: "",
-      name: formData.name,
-      adress: formData.address, // Note: keeping the original typo from the spec
-      email: formData.email,
-      telephone: formData.telephone,
-      linkedin: formData.linkedin,
-      title: formData.title,
-      about: formData.about,
-      language: formatLanguages(),
-      experience: formatExperiences(),
-      education: `${formData.education.degree}, ${formData.education.institution}, CGPA: ${formData.education.cgpa}, Duration: ${formData.education.duration}`,
-      strength: formData.strength,
-      reference: formData.reference.name ? 
-        `${formData.reference.name}, ${formData.reference.position}, ${formData.reference.company}, ${formData.reference.contact}` : '',
-      technical_skills: formatSkills(formData.technicalSkills),
-      soft_skills: formatSkills(formData.softSkills),
-      certification: formatList(formData.certifications),
-      Achivements: formatList(formData.achievements), // Note: keeping the original typo from the spec
-      extracurricular_activities: formatExtracurricular(),
-      location: formData.location
+      resume: {
+        id: String(Math.floor(Math.random() * 10000)),
+        name: formData.name,
+        title: formData.title,
+        image: imageUrl,
+        adress: formData.address, // Note: keeping the original typo from the spec
+        email: formData.email,
+        telephone: formData.telephone,
+        linkedin: formData.linkedin,
+        about: formData.about,
+        language: formatLanguages(),
+        experience: formatExperiences(),
+        "number of jobs": numberOfJobs,
+        education: formatEducation(),
+        strength: formatStrength(),
+        reference: formatReference(),
+        skills: formatSkills(),
+        certification: formatCertifications(),
+        achievement: formatAchievements(),
+        "extracurricular activities": formatExtracurricular()
+      }
     };
   };
 
@@ -235,22 +305,32 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     setIsSubmitting(true);
 
     try {
-      // First upload image
-      let gdriveUrl = '';
+      // First upload image if provided
+      let imageUrl = '';
       if (formData.image) {
         const uploadResponse = await uploadImage(formData.image);
-        gdriveUrl = uploadResponse.gdrive_url;
+        imageUrl = uploadResponse.image_url;
       }
 
-      // Then submit the full data
-      const submissionData = formatSubmissionData(gdriveUrl);
-      await submitResume(submissionData);
-      
-      alert(selectedLanguage === 'English' ? 'Resume submitted successfully!' : 'Resume berjaya dihantar!');
-      setShowReview(false);
+      // Format and submit the data to create-resume endpoint
+      const submissionData = formatSubmissionData(imageUrl);
+      const result = await submitResume(submissionData);
+
+      if (result.success) {
+        const successMessage = selectedLanguage === 'English'
+          ? `Resume created successfully!\n\nPDF saved to: ${result.pdf_path}`
+          : `Resume berjaya dicipta!\n\nPDF disimpan di: ${result.pdf_path}`;
+        alert(successMessage);
+        setShowReview(false);
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
       console.error('Submission error:', error);
-      alert(selectedLanguage === 'English' ? 'Failed to submit resume. Please try again.' : 'Gagal menghantar resume. Sila cuba lagi.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(selectedLanguage === 'English'
+        ? `Failed to create resume: ${errorMessage}`
+        : `Gagal mencipta resume: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -365,9 +445,50 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     }
   };
 
+  // Template names mapping (A to L)
+  const templateNames: Record<string, { en: string; bm: string }> = {
+    'A': { en: 'Template A - Classic', bm: 'Templat A - Klasik' },
+    'B': { en: 'Template B - ATS Friendly', bm: 'Templat B - Mesra ATS' },
+    'C': { en: 'Template C - Executive', bm: 'Templat C - Eksekutif' },
+    'D': { en: 'Template D - Creative', bm: 'Templat D - Kreatif' },
+    'E': { en: 'Template E - Elegant', bm: 'Templat E - Elegan' },
+    'F': { en: 'Template F - Simple', bm: 'Templat F - Ringkas' },
+    'G': { en: 'Template G - Compact', bm: 'Templat G - Padat' },
+    'H': { en: 'Template H - Professional', bm: 'Templat H - Profesional' },
+    'I': { en: 'Template I - Modern', bm: 'Templat I - Moden' },
+    'J': { en: 'Template J - Technical', bm: 'Templat J - Teknikal' },
+    'K': { en: 'Template K - Minimal', bm: 'Templat K - Minimal' },
+    'L': { en: 'Template L - Stylish', bm: 'Templat L - Bergaya' },
+  };
+
+  const getTemplateName = () => {
+    const template = templateNames[selectedTemplate] || { en: `Template ${selectedTemplate}`, bm: `Templat ${selectedTemplate}` };
+    return selectedLanguage === 'English' ? template.en : template.bm;
+  };
+
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-yellow-200 dark:border-gray-700">
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Selected Template Display */}
+        <section className="border-b border-gray-200 dark:border-gray-700 pb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mr-4">
+                <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplate}</span>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedLanguage === 'English' ? 'Selected Template' : 'Templat Dipilih'}
+                </p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{getTemplateName()}</h3>
+              </div>
+            </div>
+            <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
+              ✓ {selectedLanguage === 'English' ? 'Selected' : 'Dipilih'}
+            </div>
+          </div>
+        </section>
+
         {/* Basic Information */}
         <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
           <div className="flex items-center mb-6">
