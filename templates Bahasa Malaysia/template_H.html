@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
     <title>{{ name }} - Resume</title>
@@ -48,7 +48,7 @@
             padding: 16px;
         }
 
-        /* Profile Image Placeholder - empty space only, no border */
+        /* Profil Image Placeholder - empty space only, no border */
         .profile-img {
             width: 80px;
             height: 100px;
@@ -72,7 +72,7 @@
             background-color: #fdb44b;
         }
 
-        /* Contact List - no bullets */
+        /* Hubungi List - no bullets */
         .contact-list {
             font-size: 11px;
             list-style: none;
@@ -86,7 +86,7 @@
             margin-right: 8px;
         }
 
-        /* Skill Bars */
+        /* Kemahiran Bars */
         .skill-item {
             margin-bottom: 6px;
         }
@@ -111,7 +111,7 @@
             border-radius: 3px;
         }
 
-        /* Language/Cert List */
+        /* Bahasa/Cert List */
         .left-list {
             font-size: 10px;
             list-style: none;
@@ -121,7 +121,7 @@
             margin-bottom: 4px;
         }
 
-        /* Education Entry */
+        /* Pendidikan Entry */
         .edu-entry {
             margin-bottom: 10px;
         }
@@ -137,7 +137,7 @@
             color: #d1d5db;
         }
 
-        /* Reference on Left */
+        /* Rujukan on Left */
         .ref-left {
             margin-bottom: 10px;
             font-size: 11px;
@@ -196,7 +196,7 @@
             margin-bottom: 24px;
         }
 
-        /* Experience Entry */
+        /* Pengalaman Entry */
         .exp-entry {
             margin-bottom: 14px;
         }
@@ -224,7 +224,7 @@
             margin-bottom: 3px;
         }
 
-        /* Strengths List */
+        /* Kekuatan List */
         .strength-list {
             margin-left: 16px;
             font-size: 12px;
@@ -253,7 +253,7 @@
             margin-bottom: 5px;
         }
 
-        /* Reference Row on Page 2 */
+        /* Rujukan Row on Page 2 */
         .ref-row {
             display: flex;
         }
@@ -287,21 +287,21 @@
         <div class="left-section">
             <div class="profile-img"></div>
 
-            <!-- Personal Information -->
-            <div class="section-badge">Personal Information</div>
+            <!-- Maklumat Peribadi -->
+            <div class="section-badge">Maklumat Peribadi</div>
             <div class="contact-list" style="list-style: none; padding: 0;">
-                <div style="margin-bottom: 4px;"><i class="fa fa-user" style="margin-right: 8px;"></i><span class="font-semibold">Name:</span> {{ name }}</div>
-                <div style="margin-bottom: 4px;"><i class="fa fa-location-dot" style="margin-right: 8px;"></i><span class="font-semibold">Address:</span> {{ address }}</div>
-                <div style="margin-bottom: 4px;"><i class="fa fa-envelope" style="margin-right: 8px;"></i><span class="font-semibold">Email:</span> {{ email }}</div>
-                <div style="margin-bottom: 4px;"><i class="fa fa-phone" style="margin-right: 8px;"></i><span class="font-semibold">Phone:</span> {{ telephone }}</div>
+                <div style="margin-bottom: 4px;"><i class="fa fa-user" style="margin-right: 8px;"></i><span class="font-semibold">Nama:</span> {{ name }}</div>
+                <div style="margin-bottom: 4px;"><i class="fa fa-location-dot" style="margin-right: 8px;"></i><span class="font-semibold">Alamat:</span> {{ address }}</div>
+                <div style="margin-bottom: 4px;"><i class="fa fa-envelope" style="margin-right: 8px;"></i><span class="font-semibold">Emel:</span> {{ email }}</div>
+                <div style="margin-bottom: 4px;"><i class="fa fa-phone" style="margin-right: 8px;"></i><span class="font-semibold">Telefon:</span> {{ telephone }}</div>
                 {% if linkedin %}
                 <div style="margin-bottom: 4px;"><i class="fab fa-linkedin" style="margin-right: 8px;"></i><span class="font-semibold">LinkedIn:</span> {{ linkedin }}</div>
                 {% endif %}
             </div>
 
-            <!-- Education (moved directly under Personal Information) -->
+            <!-- Pendidikan (moved directly under Maklumat Peribadi) -->
             {% if education %}
-            <div class="section-badge">Education</div>
+            <div class="section-badge">Pendidikan</div>
             {% for edu in education %}
             <div class="edu-entry">
                 <div class="level">{{ edu.level }}</div>
@@ -311,9 +311,9 @@
             {% endfor %}
             {% endif %}
 
-            <!-- Technical Skills -->
+            <!-- Kemahiran Teknikal -->
             {% if skills and skills.technical_skills %}
-            <div class="section-badge">Technical Skills</div>
+            <div class="section-badge">Kemahiran Teknikal</div>
             {% for skill, level in skills.technical_skills.items() %}
             <div class="skill-item">
                 <div class="skill-name">{{ skill }}</div>
@@ -324,9 +324,9 @@
             {% endfor %}
             {% endif %}
 
-            <!-- Soft Skills -->
+            <!-- Kemahiran Insaniah -->
             {% if skills and skills.soft_skills %}
-            <div class="section-badge">Soft Skills</div>
+            <div class="section-badge">Kemahiran Insaniah</div>
             {% for trait, score in skills.soft_skills.items() %}
             <div class="skill-item">
                 <div class="skill-name">{{ trait }}</div>
@@ -337,9 +337,9 @@
             {% endfor %}
             {% endif %}
 
-            <!-- Languages -->
+            <!-- Bahasa -->
             {% if language %}
-            <div class="section-badge">Languages</div>
+            <div class="section-badge">Bahasa</div>
             <ul class="left-list">
                 {% for lang in language %}
                     {% for k, v in lang.items() %}
@@ -349,9 +349,9 @@
             </ul>
             {% endif %}
 
-            <!-- Certifications -->
+            <!-- Pensijilan -->
             {% if certification %}
-            <div class="section-badge">Certifications</div>
+            <div class="section-badge">Pensijilan</div>
             <ul class="left-list">
                 {% for cert in certification %}
                 <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
@@ -359,15 +359,15 @@
             </ul>
             {% endif %}
 
-            <!-- References (only if no second page) -->
+            <!-- Rujukan (only if no second page) -->
             {% if not achievement and not extracurricular_activities and reference %}
-            <div class="section-badge">References</div>
+            <div class="section-badge">Rujukan</div>
             {% for ref in reference %}
             <div class="ref-left">
                 <div class="name">{{ ref.name }}</div>
                 <div class="details">{{ ref.position }}, {{ ref.company }}</div>
-                {% if ref.email %}<div class="details">Email: {{ ref.email }}</div>{% endif %}
-                {% if ref.telephone %}<div class="details">Phone: {{ ref.telephone }}</div>{% endif %}
+                {% if ref.email %}<div class="details">Emel: {{ ref.email }}</div>{% endif %}
+                {% if ref.telephone %}<div class="details">Telefon: {{ ref.telephone }}</div>{% endif %}
             </div>
             {% endfor %}
             {% endif %}
@@ -378,13 +378,13 @@
             <h1>{{ name }}</h1>
             <div class="job-title">{{ title }}</div>
 
-            <!-- About Me -->
-            <span class="section-badge-right">About Me</span>
+            <!-- Tentang Saya -->
+            <span class="section-badge-right">Tentang Saya</span>
             <p class="about-text">{{ about }}</p>
 
-            <!-- Experience or Strengths -->
+            <!-- Pengalaman or Kekuatan -->
             {% if experience %}
-            <span class="section-badge-right">Experience</span>
+            <span class="section-badge-right">Pengalaman</span>
             {% set exp_count = experience|length %}
             {% for job in experience %}
             <div class="exp-entry">
@@ -412,7 +412,7 @@
             </div>
             {% endfor %}
             {% else %}
-            <span class="section-badge-right">Strengths</span>
+            <span class="section-badge-right">Kekuatan</span>
             <ul class="strength-list">
                 {% for s in strength[:8] %}
                 <li>{{ s }}</li>
@@ -426,10 +426,10 @@
     {% if achievement or extracurricular_activities %}
     <div class="page-break"></div>
     <div class="page-two">
-        <!-- Achievements -->
+        <!-- Pencapaian -->
         {% if achievement %}
         <div class="section">
-            <span class="section-badge-right">Achievements</span>
+            <span class="section-badge-right">Pencapaian</span>
             <ul>
                 {% for item in achievement %}
                 <li>{{ item }}</li>
@@ -438,10 +438,10 @@
         </div>
         {% endif %}
 
-        <!-- Extracurricular Activities -->
+        <!-- Aktiviti Kokurikulum -->
         {% if extracurricular_activities %}
         <div class="section">
-            <span class="section-badge-right">Extracurricular Activities</span>
+            <span class="section-badge-right">Aktiviti Kokurikulum</span>
             <ul>
                 {% for activity in extracurricular_activities %}
                 <li><span class="font-semibold">{{ activity.title }}</span> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
@@ -450,18 +450,18 @@
         </div>
         {% endif %}
 
-        <!-- References on Page 2 -->
+        <!-- Rujukan on Page 2 -->
         {% if reference %}
         <div class="section">
-            <span class="section-badge-right">References</span>
+            <span class="section-badge-right">Rujukan</span>
             <div class="ref-row">
                 {% for ref in reference %}
                 <div class="ref-col">
                     <div class="ref-entry">
                         <div class="name">{{ ref.name }}</div>
                         <div class="details">{{ ref.position }}, {{ ref.company }}</div>
-                        {% if ref.email %}<div class="details">Email: {{ ref.email }}</div>{% endif %}
-                        {% if ref.telephone %}<div class="details">Phone: {{ ref.telephone }}</div>{% endif %}
+                        {% if ref.email %}<div class="details">Emel: {{ ref.email }}</div>{% endif %}
+                        {% if ref.telephone %}<div class="details">Telefon: {{ ref.telephone }}</div>{% endif %}
                     </div>
                 </div>
                 {% endfor %}

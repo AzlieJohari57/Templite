@@ -1,256 +1,475 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Resume {{ name }}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @media print {
-      body {
-        font-size: 10px;
-        margin: 0;
-        padding: 0;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .print-container {
-        height: auto;
-        max-height: none;
-      }
-      .page-break { page-break-before: always; }
-      .break-inside-avoid { break-inside: avoid; }
-      .avoid-page-break { page-break-inside: avoid; }
-    }
+    <meta charset="UTF-8">
+    <title>{{ name }} - Resume</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* PDF-Safe Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      font-size: 10px;
-      margin: 0;
-      padding: 0;
-    }
-    
-    .left-section {
-      background: linear-gradient(135deg, #d4a574 0%, #c49464 100%);
-    }
-    .left-section::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.05);
-      pointer-events: none;
-    }
-    .progress-fill {
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
-      transition: width 0.3s ease;
-    }
-  </style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 18px;
+            line-height: 1.4;
+            color: #1f2937;
+            background: #fff;
+            max-width: 210mm;
+            margin: 0 auto;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+
+        /* Page Container */
+        .page {
+            display: flex;
+            min-height: 295mm;
+            background: linear-gradient(to right, #c49464 33%, #ffffff 33%);
+        }
+
+        /* Left Section - Tan/Beige Theme */
+        .left-section {
+            width: 33%;
+            background: transparent;
+            color: #1f2937;
+            padding: 13px;
+        }
+
+        /* Profile Image - no border/background (empty space only) */
+        .profile-img {
+            width: 80px;
+            height: 100px;
+            border-radius: 0;
+            border: none;
+            margin-bottom: 14px;
+            display: block;
+            object-fit: cover;
+            background-color: transparent;
+        }
+
+        /* Section Titles - Left */
+        .left-title {
+            font-size: 16px;
+            font-weight: bold;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Contact List */
+        .contact-list {
+            font-size: 10px;
+        }
+
+        .contact-list li {
+            display: flex;
+            margin-bottom: 7px;
+        }
+
+        .contact-list .icon {
+            width: 12px;
+            margin-right: 8px;
+            opacity: 0.8;
+        }
+
+        /* Skill Bars */
+        .skill-item {
+            margin-bottom: 8px;
+        }
+
+        .skill-name {
+            font-size: 10px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .skill-bar {
+            width: 100%;
+            max-width: 50px;
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+        }
+
+        .skill-bar-fill {
+            height: 5px;
+            background-color: #fff;
+            border-radius: 3px;
+        }
+
+        /* Language List */
+        .lang-list {
+            font-size: 10px;
+        }
+
+        .lang-list li {
+            margin-bottom: 6px;
+        }
+
+        /* Education Entry - same style as experience */
+        .edu-entry {
+            margin-bottom: 12px;
+            border-left: 3px solid #d97706;
+            background-color: rgba(251, 191, 36, 0.1);
+            border-radius: 0 4px 4px 0;
+            padding: 8px 8px 8px 12px;
+            font-size: 11px;
+        }
+
+        .edu-entry .level {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* Reference on Left */
+        .ref-left {
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        .ref-left .name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        /* Right Section */
+        .right-section {
+            flex: 1;
+            padding: 16px;
+            background-color: #fff;
+        }
+
+        /* Name and Title */
+        .right-section h1 {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .right-section .job-title {
+            font-size: 12px;
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 14px;
+        }
+
+        /* Section Titles - Right */
+        .right-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #d97706;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .right-title-hr {
+            height: 2px;
+            background: linear-gradient(90deg, #d97706 0%, #fbbf24 100%);
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 1px;
+        }
+
+        /* About Text */
+        .about-text {
+            font-size: 11px;
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        /* Experience Entry */
+        .exp-entry {
+            margin-bottom: 14px;
+            border-left: 3px solid #d97706;
+            background-color: rgba(251, 191, 36, 0.1);
+            border-radius: 0 4px 4px 0;
+            padding: 8px 8px 8px 12px;
+        }
+
+        .exp-entry h4 {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .exp-entry .meta {
+            font-size: 11px;
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .exp-entry ul {
+            margin-left: 16px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .exp-entry li {
+            margin-bottom: 3px;
+        }
+
+        /* Strengths List */
+        .strength-list {
+            margin-left: 16px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .strength-list li {
+            margin-bottom: 4px;
+        }
+
+        /* Page Two */
+        .page-two {
+            padding: 16px;
+            background-color: #fff;
+        }
+
+        .page-two .section {
+            margin-bottom: 18px;
+        }
+
+        .page-two ul {
+            margin-left: 16px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .page-two li {
+            margin-bottom: 5px;
+        }
+
+        /* Reference Row on Page 2 */
+        .ref-row {
+            display: flex;
+        }
+
+        .ref-col {
+            width: 50%;
+            padding-right: 16px;
+        }
+
+        .ref-entry {
+            border-left: 3px solid #d97706;
+            background-color: rgba(251, 191, 36, 0.1);
+            border-radius: 0 4px 4px 0;
+            padding: 8px 8px 8px 12px;
+            margin-bottom: 8px;
+        }
+
+        .ref-entry .name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .ref-entry .details {
+            font-size: 11px;
+        }
+    </style>
 </head>
-<body class="m-0 p-0 font-sans bg-gray-50 leading-snug print-container">
-  <!-- First Page - Full Width -->
-  <div class="flex bg-white w-full h-screen overflow-hidden">
-    <!-- Left Column -->
-    <div class="flex-1 left-section text-gray-800 p-4 flex flex-col items-center relative">
-      <img src="{{ image or './images/female_profile_pic.png' }}" alt="{{ name }}" 
-           class="w-20 h-20 mb-2 border-2 border-white border-opacity-90 rounded-full shadow-lg relative z-10">
+<body>
+    <!-- PAGE 1 -->
+    <div class="page">
+        <!-- Left Column -->
+        <div class="left-section">
+            {% if profile_image %}
+            <img src="{{ profile_image }}" alt="{{ name }}" class="profile-img">
+            {% else %}
+            <div style="width: 80px; height: 100px;"></div>
+            {% endif %}
 
-      <!-- Contact Info -->
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Contact</h2>
-        <ul class="space-y-0 text-xs">
-          <li class="flex items-center"><i class="fa fa-user w-3 mr-2 opacity-80"></i><span class="text-base">{{ name }}</span></li>
-          <li class="flex items-center"><i class="fa fa-location-dot w-3 mr-2 opacity-80"></i><span class="text-base">{{ address }}</span></li>
-          <li class="flex items-center"><i class="fa fa-envelope w-3 mr-2 opacity-80"></i><span class="text-base">{{ email }}</span></li>
-          <li class="flex items-center"><i class="fa fa-phone w-3 mr-2 opacity-80"></i><span class="text-base">{{ telephone }}</span></li>
-          {% if linkedin %}
-          <li class="flex items-center"><i class="fa fa-linkedin w-3 mr-2 opacity-80"></i><span class="text-base">{{ linkedin }}</span></li>
-          {% endif %}
-        </ul>
-      </div>
-
-      <!-- Technical Skills -->
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Technical Skills</h2>
-        <div class="space-y-0.5">
-          {% for skill, level in skills.technical_skills.items() %}
-          <div class="mb-0.5">
-            <div class="text-xs font-medium text-gray-700 mb-0.5">{{ skill }}</div>
-            <div class="w-full bg-gray-200 rounded-full h-1.5">
-              <div class="progress-fill h-1.5 rounded-full" style="width: {{ level }}%;"></div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Soft Skills -->
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Soft Skills</h2>
-        <div class="space-y-0.5">
-          {% for trait, score in skills.soft_skills.items() %}
-          <div class="mb-0.5">
-            <div class="text-xs font-medium text-gray-700 mb-0.5">{{ trait }}</div>
-            <div class="w-full bg-gray-200 rounded-full h-1.5">
-              <div class="progress-fill h-1.5 rounded-full" style="width: {{ score }}%;"></div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Languages -->
-      {% if language %}
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Languages</h2>
-        <ul class="space-y-0 text-xs">
-          {% for lang in language %}
-            {% for k, v in lang.items() %}
-            <li><span class="font-medium">{{ k }}:</span> {{ v|capitalize }}</li>
-            {% endfor %}
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-
-      <!-- Certifications -->
-      {% if certification %}
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Certifications</h2>
-        <ul class="space-y-0 text-xs">
-          {% for cert in certification %}
-          <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-
-      <!-- Education (Moved to Left Column) -->
-      <div class="w-full mb-2">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">Education</h2>
-        <div class="space-y-1">
-          {% for edu in education %}
-          <div class="text-xs break-inside-avoid avoid-page-break">
-            <div class="font-semibold">{{ edu.level }}</div>
-            <div class="text-xs">{{ edu.institution }}{% if edu.duration %} | {{ edu.duration }}{% endif %}</div>
-            {% if edu.details %}<div class="text-xs mt-0.5">{{ edu.details }}</div>{% endif %}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- References (if no second page) -->
-      {% if not achievement and not extracurricular_activities %}
-      <div class="w-full">
-        <h2 class="text-lg font-bold mb-1 pb-1 border-b-2 border-white border-opacity-70 uppercase tracking-wide text-gray-800 relative z-10">References</h2>
-        <div class="space-y-1">
-          {% for ref in reference %}
-          <div class="text-xs break-inside-avoid avoid-page-break">
-            <div class="font-semibold">{{ ref.name }}</div>
-            <div>{{ ref.position }}, {{ ref.company }}</div>
-            {% if ref.email %}<div>{{ ref.email }}</div>{% endif %}
-            {% if ref.telephone %}<div>{{ ref.telephone }}</div>{% endif %}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Right Column -->
-    <div class="flex-2 p-4 bg-white" style="flex: 2;">
-      <!-- Header -->
-      <h1 class="text-lg font-bold mb-1 text-gray-800 tracking-tight">{{ name }}</h1>
-      <div class="text-base italic text-gray-600 mb-2">{{ title }}</div>
-
-      <!-- About Me -->
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">About Me</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <p class="text-sm leading-snug">{{ about }}</p>
-      </div>
-
-      <!-- Experience or Strengths -->
-      {% if experience %}
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">Experience</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <div class="space-y-1.5">
-          {% for job in experience %}
-          <div class="break-inside-avoid avoid-page-break pl-3 ml-0 border-l-3 border-amber-600 bg-amber-50 bg-opacity-30 rounded-r-md py-1">
-            <h4 class="text-base font-semibold">{{ job.company }}</h4>
-            <p class="text-xs italic text-gray-600">{{ job.title }} – {{ job.location }} ({{ job.duration }})</p>
-            <ul class="list-disc list-inside text-sm mt-0.5 space-y-0">
-              {% set detail_limit = 3 if experience|length == 3 else (4 if experience|length == 2 else 6) %}
-              {% for bullet in job.details[:detail_limit] %}
-              <li class="text-gray-600">{{ bullet }}</li>
-              {% endfor %}
+            <!-- Contact -->
+            <h2 class="left-title">Contact</h2>
+            <ul class="contact-list">
+                <li><i class="fa fa-user icon"></i><span>{{ name }}</span></li>
+                <li><i class="fa fa-location-dot icon"></i><span>{{ address }}</span></li>
+                <li><i class="fa fa-envelope icon"></i><span>{{ email }}</span></li>
+                <li><i class="fa fa-phone icon"></i><span>{{ telephone }}</span></li>
+                {% if linkedin %}
+                <li><i class="fab fa-linkedin icon"></i><span>{{ linkedin }}</span></li>
+                {% endif %}
             </ul>
-          </div>
-          {% endfor %}
+
+            <!-- Technical Skills -->
+            {% if skills and skills.technical_skills %}
+            <h2 class="left-title">Technical Skills</h2>
+            {% for skill, level in skills.technical_skills.items() %}
+            <div class="skill-item">
+                <div class="skill-name">{{ skill }}</div>
+                <div class="skill-bar">
+                    <div class="skill-bar-fill" style="width: {{ level }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Soft Skills -->
+            {% if skills and skills.soft_skills %}
+            <h2 class="left-title">Soft Skills</h2>
+            {% for trait, score in skills.soft_skills.items() %}
+            <div class="skill-item">
+                <div class="skill-name">{{ trait }}</div>
+                <div class="skill-bar">
+                    <div class="skill-bar-fill" style="width: {{ score }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Languages -->
+            {% if language %}
+            <h2 class="left-title">Languages</h2>
+            <ul class="lang-list">
+                {% for lang in language %}
+                    {% for k, v in lang.items() %}
+                    <li><span class="font-medium">{{ k }}:</span> {{ v|capitalize }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <!-- Certifications -->
+            {% if certification %}
+            <h2 class="left-title">Certifications</h2>
+            <ul class="lang-list">
+                {% for cert in certification %}
+                <li>{{ cert.title }}{% if cert.issuer %} - {{ cert.issuer }}{% endif %}, {{ cert.date }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <!-- References (only if no second page) -->
+            {% if not achievement and not extracurricular_activities and reference %}
+            <h2 class="left-title">References</h2>
+            {% for ref in reference %}
+            <div class="ref-left">
+                <div class="name">{{ ref.name }}</div>
+                <div>{{ ref.position }}, {{ ref.company }}</div>
+                {% if ref.email %}<div>{{ ref.email }}</div>{% endif %}
+                {% if ref.telephone %}<div>{{ ref.telephone }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
         </div>
-      </div>
-      {% else %}
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">Core Strengths</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <ul class="list-disc list-inside text-sm space-y-0 ml-2">
-          {% for s in strength[:6] %}
-          <li class="text-gray-600">{{ s }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-    </div>
-  </div>
 
-  <!-- Second Page (Conditional) -->
-  {% if achievement or extracurricular_activities or (experience and experience|length > 0) %}
-  <div class="page-break"></div>
-  <div class="bg-white w-full h-screen overflow-hidden">
-    <div class="p-4 h-full">
-      {% if achievement %}
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">Achievements</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <ul class="list-disc list-inside text-sm space-y-0 ml-2">
-          {% for item in achievement %}
-          <li class="text-gray-600">{{ item }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+        <!-- Right Column -->
+        <div class="right-section">
+            <h1>{{ name }}</h1>
+            <div class="job-title">{{ title }}</div>
 
-      {% if extracurricular_activities %}
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">Extracurricular Activities</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <ul class="list-disc list-inside text-sm space-y-0 ml-2">
-          {% for activity in extracurricular_activities %}
-          <li class="text-gray-600"><span class="font-semibold">{{ activity.title }}</span> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+            <!-- About Me -->
+            <h2 class="right-title">About Me</h2>
+            <hr class="right-title-hr">
+            <p class="about-text">{{ about }}</p>
 
-      <!-- References on Page 2 -->
-      <div class="mb-2">
-        <h2 class="text-lg font-bold text-amber-600 mb-1 uppercase tracking-wide">References</h2>
-        <hr class="border-none h-0.5 bg-gradient-to-r from-amber-600 to-amber-300 mb-1 rounded">
-        <div class="space-y-1">
-          {% for ref in reference %}
-          <div class="break-inside-avoid avoid-page-break pl-3 ml-0 border-l-3 border-amber-600 bg-amber-50 bg-opacity-30 rounded-r-md py-2">
-            <div class="font-semibold text-sm">{{ ref.name }}</div>
-            <div class="text-sm">{{ ref.position }}, {{ ref.company }}</div>
-            {% if ref.email %}<div class="text-sm">Email: {{ ref.email }}</div>{% endif %}
-            {% if ref.telephone %}<div class="text-sm">Phone: {{ ref.telephone }}</div>{% endif %}
-          </div>
-          {% endfor %}
+            <!-- Experience or Strengths -->
+            {% if experience %}
+            <h2 class="right-title">Experience</h2>
+            <hr class="right-title-hr">
+            {% for job in experience %}
+            <div class="exp-entry">
+                <h4>{{ job.company }}</h4>
+                <p class="meta">{{ job.title }} – {{ job.location }} ({{ job.duration }})</p>
+                <ul>
+                    {% set detail_limit = 3 if experience|length >= 3 else (4 if experience|length == 2 else 8) %}
+                    {% for bullet in job.details[:detail_limit] %}
+                    <li>{{ bullet }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+            {% else %}
+            <h2 class="right-title">Core Strengths</h2>
+            <hr class="right-title-hr">
+            <ul class="strength-list">
+                {% for s in strength[:8] %}
+                <li>{{ s }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <!-- Education (same style as Experience) -->
+            {% if education %}
+            <h2 class="right-title">Education</h2>
+            <hr class="right-title-hr">
+            {% for edu in education %}
+            <div class="exp-entry">
+                <h4>{{ edu.institution }}</h4>
+                <p class="meta">{{ edu.level }}{% if edu.duration %} | {{ edu.duration }}{% endif %}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
         </div>
-      </div>
     </div>
-  </div>
-  {% endif %}
+
+    <!-- PAGE 2: Only if achievements or extracurricular exist -->
+    {% if achievement or extracurricular_activities %}
+    <div class="page-break"></div>
+    <div class="page-two">
+        <!-- Achievements -->
+        {% if achievement %}
+        <div class="section">
+            <h2 class="right-title">Achievements</h2>
+            <hr class="right-title-hr">
+            <ul>
+                {% for item in achievement %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Extracurricular Activities -->
+        {% if extracurricular_activities %}
+        <div class="section">
+            <h2 class="right-title">Extracurricular Activities</h2>
+            <hr class="right-title-hr">
+            <ul>
+                {% for activity in extracurricular_activities %}
+                <li><span class="font-semibold">{{ activity.title }}</span> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- References on Page 2 -->
+        {% if reference %}
+        <div class="section">
+            <h2 class="right-title">References</h2>
+            <hr class="right-title-hr">
+            <div class="ref-row">
+                {% for ref in reference %}
+                <div class="ref-col">
+                    <div class="ref-entry">
+                        <div class="name">{{ ref.name }}</div>
+                        <div class="details">{{ ref.position }}, {{ ref.company }}</div>
+                        {% if ref.email %}<div class="details">Email: {{ ref.email }}</div>{% endif %}
+                        {% if ref.telephone %}<div class="details">Phone: {{ ref.telephone }}</div>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </body>
 </html>

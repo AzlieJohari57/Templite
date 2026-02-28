@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
     <title>{{ name }} - Resume</title>
@@ -7,7 +7,7 @@
     <style>
         /* PDF-Safe Reset */
 
-        /* Reference achievement and extracucrricular activities not align */
+        /* Rujukan achievement and extracucrricular activities not align */
         * {
             margin: 0;
             padding: 0;
@@ -22,7 +22,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9px;
+            font-size: 15px;
             line-height: 1.3;
             color: #333;
             background: #fff;
@@ -54,7 +54,7 @@
         /* Color Variables */
         :root {
             --navy: #1B263B;
-            --gold: #D4A017;
+            --gold: #FEB32B;
             --maroon: #8B0000;
         }
 
@@ -68,7 +68,7 @@
             flex-direction: column;
         }
 
-        /* Profile Photo Section */
+        /* Profil Photo Section */
         .photo-section {
             padding: 16px;
             display: flex;
@@ -78,11 +78,13 @@
         .photo-container {
             width: 90px;
             height: 100px;
-            background-color: #fff;
+            background-color: transparent;
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            /* photo box removed - only empty space remains */
         }
 
         .photo-container img {
@@ -99,30 +101,31 @@
         /* Sidebar Section */
         .sidebar-section {
             padding: 10px 14px;
+            margin-bottom: 24px;
         }
 
         .sidebar-title {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin-bottom: 8px;
-            color: #D4A017;
+            margin-bottom: 12px;
+            color: #FEB32B;
         }
 
-        /* Contact Items */
+        /* Hubungi Items */
         .contact-item {
             display: flex;
             align-items: flex-start;
-            margin-bottom: 6px;
-            font-size: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
             line-height: 1.4;
         }
 
         .contact-icon {
             width: 16px;
             height: 16px;
-            background-color: #D4A017;
+            background-color: #FEB32B;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -138,14 +141,14 @@
             word-break: break-word;
         }
 
-        /* Skills List in Sidebar */
+        /* Kemahiran List in Sidebar */
         .sidebar-list {
             list-style: none;
         }
 
         .sidebar-list li {
-            font-size: 8px;
-            margin-bottom: 3px;
+            font-size: 12px;
+            margin-bottom: 6px;
             padding-left: 10px;
             position: relative;
         }
@@ -154,31 +157,31 @@
             content: "•";
             position: absolute;
             left: 0;
-            color: #D4A017;
+            color: #FEB32B;
         }
 
-        /* Languages in Sidebar */
+        /* Bahasa in Sidebar */
         .lang-entry {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .lang-name {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: bold;
             color: #fff;
         }
 
         .lang-details {
-            font-size: 8px;
+            font-size: 10px;
             color: #ccc;
             padding-left: 10px;
         }
 
-        /* References Section - Gold Background */
+        /* Rujukan Section - Gold Background */
         .references-section {
-            background-color: #D4A017;
+            background-color: #FEB32B;
             color: #1B263B;
-            padding: 10px 14px;
+            padding: 12px 14px;
             margin-top: auto;
         }
 
@@ -187,13 +190,17 @@
         }
 
         .ref-entry {
-            margin-bottom: 6px;
-            font-size: 8px;
-            line-height: 1.3;
+            margin-bottom: 10px;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         .ref-entry strong {
-            font-size: 9px;
+            font-size: 14px;
+        }
+
+        .ref-sub-detail {
+            font-size: 12px;
         }
 
         /* Right Main Column */
@@ -213,20 +220,15 @@
         }
 
         .header-accent {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 50px;
-            height: 30px;
-            background-color: #D4A017;
+            display: none;
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: bold;
             text-align: right;
-            margin-right: 10px;
-            margin-top: 5px;
+            margin-right: 0;
+            margin-top: 0;
         }
 
         /* Main Content Area */
@@ -237,14 +239,14 @@
 
         /* About Section with Gold Header */
         .about-section {
-            margin-bottom: 12px;
+            margin-bottom: 18px;
         }
 
         .about-header {
-            background-color: #D4A017;
+            background-color: #FEB32B;
             color: #1B263B;
             padding: 4px 10px;
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -252,7 +254,7 @@
         }
 
         .about-text {
-            font-size: 15px;
+            font-size: 12px;
             line-height: 1.5;
             color: #333;
             text-align: justify;
@@ -260,22 +262,22 @@
 
         /* Section Title */
         .section-title {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             color: #1B263B;
             margin-bottom: 8px;
-            margin-top: 10px;
+            margin-top: 14px;
         }
 
-        /* Experience Entry */
+        /* Pengalaman Entry */
         .exp-entry {
-            margin-bottom: 10px;
+            margin-bottom: 14px;
         }
 
         .exp-company {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #1B263B;
             text-decoration: underline;
@@ -287,25 +289,25 @@
         }
 
         .exp-title {
-            font-size: 15px;
+            font-size: 12px;
             font-style: italic;
             color: #8B0000;
             margin-bottom: 2px;
         }
 
         .exp-details {
-            font-size: 13px;
+            font-size: 11px;
             color: #333;
             line-height: 1.4;
         }
 
-        /* Education Entry */
+        /* Pendidikan Entry */
         .edu-entry {
-            margin-bottom: 13px;
+            margin-bottom: 14px;
         }
 
         .edu-institution {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #1B263B;
             text-decoration: underline;
@@ -317,7 +319,7 @@
         }
 
         .edu-level {
-            font-size: 9px;
+            font-size: 12px;
             color: #8B0000;
             font-style: italic;
         }
@@ -325,22 +327,24 @@
         /* Page 2 Styles */
         .page-two {
             padding: 16px;
+            flex-direction: column;
         }
 
         .page-two .section-title {
-            font-size: 12px;
-            border-bottom: 2px solid #D4A017;
+            font-size: 16px;
+            border-bottom: 2px solid #FEB32B;
             padding-bottom: 4px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
+            margin-top: 22px;
         }
 
         .page-two ul {
             margin-left: 16px;
-            font-size: 9px;
+            font-size: 14px;
         }
 
         .page-two li {
-            margin-bottom: 4px;
+            margin-bottom: 10px;
         }
 
         /* Content Density Classes */
@@ -348,7 +352,7 @@
         .content-dense .exp-entry { margin-bottom: 6px; }
         .content-dense .exp-details { font-size: 7px; }
 
-        .content-sparse .about-text { font-size: 10px; line-height: 1.6; }
+        .content-sparse .about-text { font-size: 18px; line-height: 1.6; }
         .content-sparse .exp-entry { margin-bottom: 12px; }
         .content-sparse .section-title { font-size: 12px; }
     </style>
@@ -369,22 +373,20 @@
     <div class="page {{ density_class }}">
         <!-- Left Sidebar -->
         <div class="sidebar">
-            <!-- Profile Photo -->
+            <!-- Profil Photo -->
             <div class="photo-section">
                 {% if profile_image %}
                 <div class="photo-container">
                     <img src="{{ profile_image }}" alt="{{ name }}">
                 </div>
                 {% else %}
-                <div class="photo-container">
-                    <i class="fas fa-user photo-placeholder"></i>
-                </div>
+                <div class="photo-container"></div>
                 {% endif %}
             </div>
 
-            <!-- Contact Section -->
+            <!-- Hubungi Section -->
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Contact</h3>
+                <h3 class="sidebar-title">Hubungi</h3>
 
                 {% if address %}
                 <div class="contact-item">
@@ -415,10 +417,10 @@
                 {% endif %}
             </div>
 
-            <!-- Skills Section -->
+            <!-- Kemahiran Section -->
             {% if skills and skills.technical_skills %}
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Skills</h3>
+                <h3 class="sidebar-title">Kemahiran</h3>
                 <ul class="sidebar-list">
                     {% for skill, level in skills.technical_skills.items() %}
                     <li>{{ skill }}</li>
@@ -427,10 +429,10 @@
             </div>
             {% endif %}
 
-            <!-- Personality Skills -->
+            <!-- Kemahiran Insaniah -->
             {% if skills and skills.soft_skills %}
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Personality Skills</h3>
+                <h3 class="sidebar-title">Kemahiran Insaniah</h3>
                 <ul class="sidebar-list">
                     {% for trait, score in skills.soft_skills.items() %}
                     <li>{{ trait }}</li>
@@ -439,10 +441,10 @@
             </div>
             {% endif %}
 
-            <!-- Languages -->
+            <!-- Bahasa -->
             {% if language %}
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Languages</h3>
+                <h3 class="sidebar-title">Bahasa</h3>
                 {% for lang in language %}
                     {% for k, v in lang.items() %}
                     <div class="lang-entry">
@@ -454,10 +456,10 @@
             </div>
             {% endif %}
 
-            <!-- References Section - Gold Background -->
+            <!-- Rujukan Section - Gold Background -->
             {% if reference and not needs_page_2 %}
             <div class="references-section">
-                <h3 class="sidebar-title">References</h3>
+                <h3 class="sidebar-title">Rujukan</h3>
                 {% for ref in reference[:2] %}
                 <div class="ref-entry">
                     <strong>{{ ref.name }}</strong><br>
@@ -477,24 +479,24 @@
                 <div class="header-accent"></div>
                 <h1>{{ name }}</h1>
                 {% if position %}
-                <div style="font-size: 12px; color: #D4A017; text-align: right; margin-right: 10px; text-transform: uppercase; letter-spacing: 1px;">{{ position }}</div>
+                <div style="font-size: 12px; color: #FEB32B; text-align: right; margin-right: 10px; text-transform: uppercase; letter-spacing: 1px;">{{ position }}</div>
                 {% endif %}
             </div>
 
             <!-- Main Content -->
             <div class="main-content">
-                <!-- About Me Section -->
+                <!-- Tentang Saya Section -->
                 {% if about %}
                 <div class="about-section">
-                    <div class="about-header">About Me</div>
+                    <div class="about-header">Tentang Saya</div>
                     <p class="about-text">{{ about }}</p>
                 </div>
                 {% endif %}
 
-                <!-- Experience -->
+                <!-- Pengalaman -->
                 {% if experience and experience|length > 0 %}
                 <div class="section">
-                    <h2 class="section-title">Experience</h2>
+                    <h2 class="section-title">Pengalaman</h2>
                     {% set max_jobs = 4 if exp_count <= 4 else 3 %}
                     {% for job in experience[:max_jobs] %}
                     <div class="exp-entry">
@@ -511,9 +513,9 @@
                     {% endfor %}
                 </div>
                 {% elif strength %}
-                <!-- Strengths if no experience -->
+                <!-- Kekuatan if no experience -->
                 <div class="section">
-                    <h2 class="section-title">Core Strengths</h2>
+                    <h2 class="section-title">Kekuatan Utama</h2>
                     <ul class="sidebar-list" style="color: #333;">
                         {% for strength_item in strength[:8] %}
                         <li>{{ strength_item }}</li>
@@ -522,10 +524,10 @@
                 </div>
                 {% endif %}
 
-                <!-- Education -->
+                <!-- Pendidikan -->
                 {% if education %}
                 <div class="section">
-                    <h2 class="section-title">Education</h2>
+                    <h2 class="section-title">Pendidikan</h2>
                     {% for edu in education[:3] %}
                     <div class="edu-entry">
                         <div class="edu-institution">{{ edu.institution }}</div>
@@ -536,10 +538,10 @@
                 </div>
                 {% endif %}
 
-                <!-- Certifications -->
+                <!-- Pensijilan -->
                 {% if certification %}
                 <div class="section">
-                    <h2 class="section-title">Certifications</h2>
+                    <h2 class="section-title">Pensijilan</h2>
                     <ul class="sidebar-list" style="color: #333;">
                         {% for cert in certification[:4] %}
                         <li>{{ cert.title }}{% if cert.date %} ({{ cert.date }}){% endif %}</li>
@@ -555,10 +557,10 @@
     {% if needs_page_2 %}
     <div class="page-break"></div>
     <div class="page page-two">
-        <!-- Overflow Experience -->
+        <!-- Overflow Pengalaman -->
         {% if experience and experience|length > 4 %}
         <div class="section">
-            <h2 class="section-title">Experience (Continued)</h2>
+            <h2 class="section-title">Pengalaman (Sambungan)</h2>
             {% for job in experience[4:] %}
             <div class="exp-entry">
                 <div class="exp-company">{{ job.company }}</div>
@@ -572,10 +574,10 @@
         </div>
         {% endif %}
 
-        <!-- Overflow Education -->
+        <!-- Overflow Pendidikan -->
         {% if education and education|length > 3 %}
         <div class="section">
-            <h2 class="section-title">Education (Continued)</h2>
+            <h2 class="section-title">Pendidikan (Sambungan)</h2>
             {% for edu in education[3:] %}
             <div class="edu-entry">
                 <div class="edu-institution">{{ edu.institution }}</div>
@@ -586,10 +588,10 @@
         </div>
         {% endif %}
 
-        <!-- Achievements -->
+        <!-- Pencapaian -->
         {% if has_achievement %}
         <div class="section">
-            <h2 class="section-title">Achievements</h2>
+            <h2 class="section-title">Pencapaian</h2>
             <ul>
                 {% for item in achievement %}
                 <li>{{ item }}</li>
@@ -598,10 +600,10 @@
         </div>
         {% endif %}
 
-        <!-- Extracurricular Activities -->
+        <!-- Aktiviti Kokurikulum -->
         {% if has_extracurricular %}
         <div class="section">
-            <h2 class="section-title">Extracurricular Activities</h2>
+            <h2 class="section-title">Aktiviti Kokurikulum</h2>
             <ul>
                 {% for activity in extracurricular_activities %}
                 <li><strong>{{ activity.title }}</strong> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
@@ -610,17 +612,17 @@
         </div>
         {% endif %}
 
-        <!-- References on Page 2 (Stacked Layout) -->
+        <!-- Rujukan on Page 2 (Stacked Layout) -->
         {% if reference %}
         <div class="section">
-            <h2 class="section-title">References</h2>
+            <h2 class="section-title">Rujukan</h2>
             {% for ref in reference %}
             <div class="ref-entry" style="color: #333; margin-bottom: 10px;">
                 <strong>{{ ref.name }}</strong><br>
-                {{ ref.position }}<br>
+                <span class="ref-sub-detail">{{ ref.position }}<br>
                 {{ ref.company }}<br>
                 {% if ref.email %}{{ ref.email }}<br>{% endif %}
-                {% if ref.telephone %}{{ ref.telephone }}{% endif %}
+                {% if ref.telephone %}{{ ref.telephone }}{% endif %}</span>
             </div>
             {% endfor %}
         </div>

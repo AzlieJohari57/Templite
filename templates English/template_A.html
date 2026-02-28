@@ -380,6 +380,9 @@
 
             <div class="header-content">
                 <h1>{{ name.upper() }}</h1>
+                {% if position %}
+                <div style="font-size: 11px; color: #F1C40F; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">{{ position }}</div>
+                {% endif %}
 
                 <!-- Contact Info -->
                 <div class="contact-row">
