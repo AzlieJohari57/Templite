@@ -5,13 +5,14 @@ requests
 python-dotenv
 fastapi
 uvicorn
+python-multipart
 tabulate
 beautifulsoup4
 python-docx
 html2docx
 langchain
 langgraph
-langgraph-prebuilt 
+langgraph-prebuilt
 langchain_openai
 langchain_experimental
 jinja2

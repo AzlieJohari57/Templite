@@ -83,6 +83,12 @@ const ResumeTemplateCarousel: React.FC<ResumeTemplateCarouselProps> = ({ selecte
       name: language === 'English' ? 'Template L - Stylish' : 'Templat L - Bergaya',
       description: language === 'English' ? 'Stylish modern design' : 'Reka bentuk moden bergaya',
       color: 'bg-emerald-500'
+    },
+    {
+      id: 'M',
+      name: language === 'English' ? 'Template M - ATS Friendly' : 'Templat M - Mesra ATS',
+      description: language === 'English' ? 'ATS-optimized clean format' : 'Format bersih dioptimumkan ATS',
+      color: 'bg-gray-500'
     }
   ];
 

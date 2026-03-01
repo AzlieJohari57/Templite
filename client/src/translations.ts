@@ -72,7 +72,7 @@ export const translations = {
       degreePlaceholder: 'e.g., Bachelor of Computer Science',
       institution: 'Institution',
       institutionPlaceholder: 'e.g., University of Technology Malaysia',
-      durationPlaceholder: 'Example: 2020 - 2024 or September 2020 - May 2024',
+      educationDurationPlaceholder: 'Example: 2020 - 2024 or September 2020 - May 2024',
       cgpa: 'CGPA',
       cgpaPlaceholder: 'e.g., 3.75',
       
@@ -229,7 +229,7 @@ export const translations = {
       degreePlaceholder: 'cth., Ijazah Sarjana Muda Sains Komputer',
       institution: 'Institusi',
       institutionPlaceholder: 'cth., Universiti Teknologi Malaysia',
-      durationPlaceholder: 'Contoh: 2020 - 2024 atau September 2020 - Mei 2024',
+      educationDurationPlaceholder: 'Contoh: 2020 - 2024 atau September 2020 - Mei 2024',
       cgpa: 'CGPA',
       cgpaPlaceholder: 'cth., 3.75',
       

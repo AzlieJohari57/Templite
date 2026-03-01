@@ -60,6 +60,7 @@ TEMPLATE_MAP = {
     "J": "template_J.html",
     "K": "template_K.html",
     "L": "template_L.html",
+    "M": "template_M.html",
 }
 
 
@@ -399,7 +400,7 @@ def save_html(html_content: str, output_path: str | Path) -> Path:
 
 def convert_html_to_pdf(html_path: str | Path, pdf_path: str | Path) -> Path:
     """
-    Convert HTML file to PDF using Playwright via subprocess.
+    Convert HTML file to PDF using Playwright directly.
 
     Args:
         html_path: Path to HTML file
@@ -408,61 +409,36 @@ def convert_html_to_pdf(html_path: str | Path, pdf_path: str | Path) -> Path:
     Returns:
         Path to generated PDF
     """
-    import subprocess
+    from playwright.sync_api import sync_playwright
 
     html_path = Path(html_path)
     pdf_path = Path(pdf_path)
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Use conda environment Python directly
-    python_exe = r"C:\Users\azlie\miniconda3\envs\templite\python.exe"
-
-    # Create a temporary Python script to run Playwright
-    script = f'''
-from playwright.sync_api import sync_playwright
-from pathlib import Path
-
-html_path = Path(r"{html_path.resolve()}")
-pdf_path = Path(r"{pdf_path.resolve()}")
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    context = browser.new_context()
-    page = context.new_page()
-
-    file_uri = html_path.as_uri()
-    page.goto(file_uri)
-    page.wait_for_load_state('networkidle')
-    page.emulate_media(media="print")
-
-    page.pdf(
-        path=str(pdf_path),
-        format="A4",
-        print_background=True,
-        margin={{"top": "0.5mm", "bottom": "0.5mm", "left": "0.5mm", "right": "0.5mm"}},
-    )
-
-    browser.close()
-
-print("PDF generated successfully")
-'''
-
     try:
-        result = subprocess.run(
-            [python_exe, "-c", script],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        if result.returncode != 0:
-            print(f"PDF conversion error: {result.stderr}")
-            raise RuntimeError(f"PDF conversion failed: {result.stderr}")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+
+            file_uri = html_path.as_uri()
+            page.goto(file_uri)
+            page.wait_for_load_state('networkidle')
+            page.emulate_media(media="print")
+
+            page.pdf(
+                path=str(pdf_path),
+                format="A4",
+                print_background=True,
+                margin={"top": "0.5mm", "bottom": "0.5mm", "left": "0.5mm", "right": "0.5mm"},
+            )
+
+            browser.close()
+
         print(f"  PDF saved to: {pdf_path}")
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("PDF conversion timed out")
     except Exception as e:
         print(f"PDF conversion error: {e}")
-        raise
+        raise RuntimeError(f"PDF conversion failed: {e}")
 
     return pdf_path
 

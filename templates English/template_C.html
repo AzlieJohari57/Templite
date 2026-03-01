@@ -20,7 +20,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9px;
+            font-size: 15px;
             line-height: 1.3;
             color: #000;
             background: #fff;
@@ -65,7 +65,7 @@
 
         /* Header Left - Gray with Photo & Contact */
         .header-left {
-            width: 50%;
+            width: 47%;
             background-color: #D3D3D3;
             display: flex;
             align-items: center;
@@ -76,13 +76,13 @@
             width: 75px;
             height: 75px;
             border-radius: 50%;
-            background-color: #fff;
+            background-color: transparent;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            border: 3px solid #D4AF37;
+            border: none;
         }
 
         .photo-container img {
@@ -103,8 +103,8 @@
         .contact-item {
             display: flex;
             align-items: center;
-            margin-bottom: 4px;
-            font-size: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
             color: #333;
         }
 
@@ -123,7 +123,7 @@
 
         /* Header Right - Black with Gold Name */
         .header-right {
-            width: 50%;
+            width: 53%;
             background-color: #000;
             display: flex;
             align-items: center;
@@ -145,33 +145,33 @@
             flex: 1;
         }
 
-        /* Left Column - Gray Background */
+        /* Left Column - Gray Background - wider */
         .left-column {
-            width: 50%;
+            width: 47%;
             background-color: #D3D3D3;
-            padding: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
         }
 
         /* Right Column - Black Background */
         .right-column {
-            width: 50%;
+            width: 53%;
             background-color: #000;
             color: #fff;
-            padding: 12px;
+            padding: 14px;
         }
 
         /* ===== ABOUT ME SECTION ===== */
         .about-section {
             background-color: #000;
             color: #fff;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 14px;
+            margin-bottom: 18px;
         }
 
         .about-title {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #D4AF37;
             text-transform: uppercase;
@@ -182,7 +182,7 @@
         }
 
         .about-text {
-            font-size: 8px;
+            font-size: 11px;
             line-height: 1.5;
             text-align: justify;
         }
@@ -190,7 +190,7 @@
         /* ===== SECTION WITH VERTICAL LABEL ===== */
         .labeled-section {
             display: flex;
-            margin-bottom: 8px;
+            margin-bottom: 20px;
         }
 
         .vertical-label {
@@ -199,7 +199,7 @@
             transform: rotate(180deg);
             background-color: #D4AF37;
             color: #000;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: bold;
             letter-spacing: 2px;
             padding: 8px 4px;
@@ -211,33 +211,33 @@
 
         .section-content {
             flex: 1;
-            padding-left: 8px;
+            padding-left: 10px;
         }
 
         /* ===== EXPERIENCE ENTRY ===== */
         .exp-entry {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .exp-company {
-            font-size: 9px;
+            font-size: 13px;
             font-weight: bold;
             color: #000;
         }
 
         .exp-duration {
-            font-size: 7px;
+            font-size: 8px;
             color: #555;
         }
 
         .exp-title {
-            font-size: 8px;
+            font-size: 11px;
             color: #333;
             text-decoration: underline;
         }
 
         .exp-details {
-            font-size: 7px;
+            font-size: 11px;
             color: #333;
             line-height: 1.4;
             margin-top: 2px;
@@ -245,60 +245,69 @@
 
         /* ===== EDUCATION ENTRY ===== */
         .edu-entry {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .edu-institution {
-            font-size: 9px;
+            font-size: 13px;
             font-weight: bold;
             color: #000;
             text-decoration: underline;
         }
 
         .edu-duration {
-            font-size: 7px;
+            font-size: 11px;
             color: #555;
         }
 
         .edu-level {
-            font-size: 8px;
+            font-size: 11px;
             color: #333;
             text-decoration: underline;
         }
 
         /* ===== RIGHT COLUMN SECTIONS ===== */
         .right-section {
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .right-section-title {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #D4AF37;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             margin-bottom: 8px;
-            text-align: center;
+            text-align: left;
+        }
+
+        .right-section-title.left-align {
+            text-align: left;
         }
 
         /* ===== REFERENCE ENTRY ===== */
         .ref-entry {
             margin-bottom: 8px;
-            font-size: 8px;
-            line-height: 1.3;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         .ref-entry strong {
             color: #D4AF37;
+            font-size: 14px;
+        }
+
+        .ref-sub-detail {
+            font-size: 13px;
         }
 
         /* ===== LANGUAGE WITH BARS ===== */
         .lang-item {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .lang-name {
-            font-size: 8px;
+            font-size: 12px;
             margin-bottom: 2px;
         }
 
@@ -308,7 +317,7 @@
         }
 
         .lang-bar-segment {
-            width: 16px;
+            width: 20px;
             height: 6px;
             background-color: #444;
         }
@@ -320,18 +329,18 @@
         /* ===== SKILL WITH BARS ===== */
         .skill-item {
             display: flex;
-            align-items: center;
-            margin-bottom: 4px;
+            align-items: flex-start;
+            margin-bottom: 6px;
         }
 
         .skill-bullet {
             color: #D4AF37;
             margin-right: 6px;
-            font-size: 8px;
+            font-size: 11px;
         }
 
         .skill-name {
-            font-size: 8px;
+            font-size: 11px;
             width: 90px;
             flex-shrink: 0;
         }
@@ -342,6 +351,7 @@
             background-color: #444;
             display: flex;
             gap: 1px;
+            max-width: 50px;
         }
 
         .skill-bar-segment {
@@ -361,21 +371,21 @@
         }
 
         .page-two .section-title {
-            font-size: 12px;
+            font-size: 16px;
             font-weight: bold;
             color: #000;
             border-bottom: 2px solid #D4AF37;
             padding-bottom: 4px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
         }
 
         .page-two ul {
             margin-left: 16px;
-            font-size: 9px;
+            font-size: 14px;
         }
 
         .page-two li {
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         /* Content Density */
@@ -383,7 +393,7 @@
         .content-dense .exp-entry { margin-bottom: 5px; }
         .content-dense .exp-details { font-size: 6px; }
 
-        .content-sparse .about-text { font-size: 9px; }
+        .content-sparse .about-text { font-size: 15px; }
         .content-sparse .exp-entry { margin-bottom: 10px; }
     </style>
 </head>
@@ -410,9 +420,7 @@
                     <img src="{{ profile_image }}" alt="{{ name }}">
                 </div>
                 {% else %}
-                <div class="photo-container">
-                    <i class="fas fa-user photo-placeholder"></i>
-                </div>
+                <div class="photo-container"></div>
                 {% endif %}
 
                 <div class="contact-info">
@@ -441,7 +449,7 @@
             <div class="header-right">
                 <h1>{{ name }}</h1>
                 {% if position %}
-                <div style="font-size: 10px; color: #D4AF37; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">{{ position }}</div>
+                <div style="font-size: 18px; color: #D4AF37; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">{{ position }}</div>
                 {% endif %}
             </div>
         </div>
@@ -587,9 +595,9 @@
                 <!-- Certifications -->
                 {% if certification %}
                 <div class="right-section">
-                    <h3 class="right-section-title">Certifications</h3>
+                    <h3 class="right-section-title left-align">Certifications</h3>
                     {% for cert in certification[:4] %}
-                    <div style="font-size: 8px; margin-bottom: 3px;">
+                    <div style="font-size: 11px; margin-bottom: 3px;">
                         • {{ cert.title }}{% if cert.date %} ({{ cert.date }}){% endif %}
                     </div>
                     {% endfor %}
@@ -666,11 +674,11 @@
                 {% for ref in reference %}
                 <div style="width: 50%; padding-right: 16px;">
                     <div class="ref-entry" style="color: #333;">
-                        <strong style="color: #000;">{{ ref.name }}</strong><br>
-                        {{ ref.position }}<br>
+                        <strong style="color: #000; font-size: 13px;">{{ ref.name }}</strong><br>
+                        <span class="ref-sub-detail">{{ ref.position }}<br>
                         {{ ref.company }}<br>
                         {% if ref.email %}{{ ref.email }}<br>{% endif %}
-                        {% if ref.telephone %}{{ ref.telephone }}{% endif %}
+                        {% if ref.telephone %}{{ ref.telephone }}{% endif %}</span>
                     </div>
                 </div>
                 {% endfor %}

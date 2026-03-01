@@ -20,7 +20,7 @@
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9px;
+            font-size: 15px;
             line-height: 1.4;
             color: #000;
             background: #fff;
@@ -65,7 +65,7 @@
         }
 
         .header-name {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: bold;
             color: #000;
             text-transform: uppercase;
@@ -74,9 +74,9 @@
         }
 
         .header-contact {
-            font-size: 9px;
+            font-size: 12px;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .contact-line {
@@ -88,7 +88,7 @@
             color: #000;
         }
 
-        /* Photo Container */
+        /* Photo Container - empty space only */
         .header-photo {
             width: 80px;
             margin-left: 16px;
@@ -97,8 +97,8 @@
         .photo-container {
             width: 80px;
             height: 95px;
-            border: 1px solid #000;
-            background-color: #f5f5f5;
+            border: none;
+            background-color: transparent;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -124,7 +124,7 @@
         }
 
         .objective-title {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
             color: #000;
             text-transform: uppercase;
@@ -134,7 +134,7 @@
         }
 
         .objective-text {
-            font-size: 9px;
+            font-size: 11px;
             line-height: 1.5;
             color: #333;
             text-align: justify;
@@ -166,14 +166,14 @@
 
         /* ===== SECTION TITLES ===== */
         .section-title {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
             color: #000;
             text-transform: uppercase;
             border-bottom: 1px solid #000;
             padding-bottom: 3px;
             margin-bottom: 8px;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         .section-title:first-child {
@@ -182,28 +182,28 @@
 
         /* ===== EDUCATION ===== */
         .edu-entry {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .edu-institution {
-            font-size: 9px;
+            font-size: 13px;
             font-weight: bold;
             color: #000;
             text-decoration: underline;
         }
 
         .edu-duration {
-            font-size: 8px;
+            font-size: 12px;
             color: #333;
         }
 
         .edu-level {
-            font-size: 9px;
+            font-size: 12px;
             color: #333;
         }
 
         .edu-details {
-            font-size: 8px;
+            font-size: 11px;
             color: #666;
         }
 
@@ -219,8 +219,8 @@
         }
 
         .skill-item {
-            font-size: 8px;
-            margin-bottom: 3px;
+            font-size: 11px;
+            margin-bottom: 4px;
             padding-left: 10px;
             position: relative;
             color: #333;
@@ -235,8 +235,8 @@
 
         /* ===== LANGUAGES ===== */
         .lang-item {
-            font-size: 8px;
-            margin-bottom: 3px;
+            font-size: 11px;
+            margin-bottom: 4px;
             padding-left: 10px;
             position: relative;
             color: #333;
@@ -251,24 +251,28 @@
 
         /* ===== REFERENCES ===== */
         .ref-entry {
-            margin-bottom: 8px;
-            font-size: 8px;
-            line-height: 1.3;
+            margin-bottom: 10px;
+            font-size: 11px;
+            line-height: 1.4;
             color: #333;
         }
 
         .ref-entry strong {
             color: #000;
-            font-size: 9px;
+            font-size: 14px;
+        }
+
+        .ref-sub-detail {
+            font-size: 12px;
         }
 
         /* ===== EXPERIENCE ===== */
         .exp-entry {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .exp-company {
-            font-size: 10px;
+            font-size: 13px;
             font-weight: bold;
             color: #000;
             text-decoration: underline;
@@ -280,7 +284,7 @@
         }
 
         .exp-title {
-            font-size: 9px;
+            font-size: 12px;
             color: #333;
             font-style: italic;
         }
@@ -291,7 +295,7 @@
         }
 
         .exp-details li {
-            font-size: 8px;
+            font-size: 11px;
             color: #333;
             margin-bottom: 3px;
             list-style-type: square;
@@ -314,20 +318,20 @@
 
         .page-two ul {
             margin-left: 16px;
-            font-size: 9px;
+            font-size: 12px;
         }
 
         .page-two li {
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             list-style-type: square;
         }
 
         /* Content Density */
-        .content-dense .objective-text { font-size: 8px; line-height: 1.3; }
+        .content-dense .objective-text { font-size: 15x; line-height: 1.3; }
         .content-dense .exp-entry { margin-bottom: 6px; }
         .content-dense .exp-details li { font-size: 7px; }
 
-        .content-sparse .objective-text { font-size: 10px; line-height: 1.6; }
+        .content-sparse .objective-text { font-size: 15px; line-height: 1.6; }
         .content-sparse .exp-entry { margin-bottom: 12px; }
     </style>
 </head>
@@ -373,9 +377,7 @@
                     <img src="{{ profile_image }}" alt="{{ name }}">
                 </div>
                 {% else %}
-                <div class="photo-container">
-                    <i class="fas fa-user photo-placeholder"></i>
-                </div>
+                <div class="photo-container"></div>
                 {% endif %}
             </div>
         </div>
@@ -449,6 +451,16 @@
                 </div>
                 {% endif %}
 
+                <!-- Certifications -->
+                {% if certification %}
+                <h3 class="section-title">Certifications</h3>
+                <ul class="exp-details" style="margin-left: 16px;">
+                    {% for cert in certification[:4] %}
+                    <li>{{ cert.title }}{% if cert.date %} ({{ cert.date }}){% endif %}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
                 <!-- References -->
                 {% if reference and not needs_page_2 %}
                 <h3 class="section-title">References</h3>
@@ -497,15 +509,6 @@
                 </ul>
                 {% endif %}
 
-                <!-- Certifications -->
-                {% if certification %}
-                <h3 class="section-title">Certifications</h3>
-                <ul class="exp-details" style="margin-left: 16px;">
-                    {% for cert in certification[:4] %}
-                    <li>{{ cert.title }}{% if cert.date %} ({{ cert.date }}){% endif %}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -523,9 +526,9 @@
                 <!-- Achievements -->
                 {% if has_achievement %}
                 <h3 class="section-title">Achievements</h3>
-                <ul style="margin-left: 16px; font-size: 9px;">
+                <ul style="margin-left: 16px; font-size: 12px;">
                     {% for item in achievement %}
-                    <li style="list-style-type: square; margin-bottom: 4px;">{{ item }}</li>
+                    <li style="list-style-type: square; margin-bottom: 5px;">{{ item }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
@@ -536,10 +539,10 @@
                 {% for ref in reference %}
                 <div class="ref-entry">
                     <strong>{{ ref.name }}</strong><br>
-                    {{ ref.position }}<br>
+                    <span class="ref-sub-detail">{{ ref.position }}<br>
                     {{ ref.company }}<br>
                     {% if ref.email %}{{ ref.email }}<br>{% endif %}
-                    {% if ref.telephone %}{{ ref.telephone }}{% endif %}
+                    {% if ref.telephone %}{{ ref.telephone }}{% endif %}</span>
                 </div>
                 {% endfor %}
                 {% endif %}
@@ -584,9 +587,9 @@
                 <!-- Extracurricular Activities -->
                 {% if has_extracurricular %}
                 <h3 class="section-title">Extracurricular Activities</h3>
-                <ul style="margin-left: 16px; font-size: 9px;">
+                <ul style="margin-left: 16px; font-size: 12px;">
                     {% for activity in extracurricular_activities %}
-                    <li style="list-style-type: square; margin-bottom: 4px;"><strong>{{ activity.title }}</strong> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
+                    <li style="list-style-type: square; margin-bottom: 5px;"><strong>{{ activity.title }}</strong> ({{ activity.date }}){% if activity.details %} - {{ activity.details }}{% endif %}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}

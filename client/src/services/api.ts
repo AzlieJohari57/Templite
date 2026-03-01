@@ -19,6 +19,8 @@ export const uploadImage = async (imageFile: File): Promise<{ image_url: string 
   try {
     const response = await fetch(`${API_BASE_URL}/upload-image`, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'include',
       body: formData,
     });
 
@@ -42,6 +44,8 @@ export const submitResume = async (resumeData: any): Promise<CreateResumeRespons
 
     const response = await fetch(`${API_BASE_URL}/create-resume`, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },

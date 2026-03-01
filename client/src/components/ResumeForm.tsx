@@ -459,6 +459,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     'J': { en: 'Template J - Technical', bm: 'Templat J - Teknikal' },
     'K': { en: 'Template K - Minimal', bm: 'Templat K - Minimal' },
     'L': { en: 'Template L - Stylish', bm: 'Templat L - Bergaya' },
+    'M': { en: 'Template M - ATS Friendly', bm: 'Templat M - Mesra ATS' },
   };
 
   const getTemplateName = () => {
@@ -759,7 +760,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
             />
             <input
               type="text"
-              placeholder={t.durationPlaceholder}
+              placeholder={t.educationDurationPlaceholder}
               value={formData.education.duration}
               onChange={(e) => handleNestedInputChange('education', 'duration', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
