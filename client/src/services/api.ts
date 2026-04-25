@@ -1,67 +1,63 @@
-// API base URL - adjust this based on your backend server
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = '';
 
-// Response type from create-resume endpoint
-export interface CreateResumeResponse {
-  success: boolean;
-  message: string;
-  pdf_path: string;
-  html_path: string;
+export type JobStatus = 'pending' | 'processing' | 'done' | 'failed';
+
+export interface ResumeJobResponse {
+  job_id: string;
 }
 
-// Upload image and return URL (mock for now - implement actual upload if needed)
-export const uploadImage = async (imageFile: File): Promise<{ image_url: string }> => {
-  // For now, return a placeholder path
-  // In production, you'd upload to a server or cloud storage
+export interface ResumeStatusResponse {
+  status: JobStatus;
+  pdf_path?: string;
+  drive_url?: string;
+  error?: string;
+}
+
+export const uploadImage = async (imageFile: File, phone: string): Promise<{ image_url: string }> => {
   const formData = new FormData();
   formData.append('image', imageFile);
+  formData.append('phone', phone);
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/upload-image`, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'include',
-      body: formData,
-    });
+  const response = await fetch(`${API_BASE_URL}/api/upload-image`, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'include',
+    body: formData,
+  });
 
-    if (!response.ok) {
-      throw new Error('Image upload failed');
-    }
-
-    const data = await response.json();
-    return { image_url: data.image_url };
-  } catch (error) {
-    console.error('Image upload error:', error);
-    // Return placeholder path if upload fails
-    return { image_url: `../images/${Date.now()}.png` };
-  }
+  if (!response.ok) throw new Error('Image upload failed');
+  return response.json();
 };
 
-// Submit resume data to create-resume endpoint
-export const submitResume = async (resumeData: any): Promise<CreateResumeResponse> => {
-  try {
-    console.log('Submitting resume data:', JSON.stringify(resumeData, null, 2));
+// Submit resume data — returns a job_id immediately (non-blocking).
+export const submitResume = async (resumeData: any): Promise<ResumeJobResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/create-resume`, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(resumeData),
+  });
 
-    const response = await fetch(`${API_BASE_URL}/create-resume`, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(resumeData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Resume creation failed');
-    }
-
-    const result: CreateResumeResponse = await response.json();
-    console.log('Resume created successfully:', result);
-    return result;
-  } catch (error) {
-    console.error('Resume submission error:', error);
-    throw error;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to start resume generation');
   }
+
+  return response.json();
+};
+
+// Poll for job progress. Call every 3 s until status is "done" or "failed".
+export const getResumeStatus = async (jobId: string): Promise<ResumeStatusResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/resume-status/${jobId}`, {
+    mode: 'cors',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to get job status');
+  }
+
+  return response.json();
 };

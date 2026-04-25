@@ -241,7 +241,7 @@ Balas dengan HANYA objek JSON (tiada markdown, tiada blok kod, hanya JSON):
     {"skill": "Penyelesaian Masalah", "percentage": 75},
     {"skill": "Kepimpinan", "percentage": 70}
   ],
-  "strengths": "2-3 ayat perenggan yang menerangkan kekuatan utama untuk peranan ini"
+  "strengths": "2-3 ayat perenggan yang menerangkan kelebihan utama calon untuk peranan ini"
 }
 
 Buat kemahiran khusus dan berkaitan dengan ${jobTitle}.`;

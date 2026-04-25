@@ -3,7 +3,18 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        'progress-indeterminate': {
+          '0%': { transform: 'translateX(-100%) scaleX(0.3)' },
+          '50%': { transform: 'translateX(50%) scaleX(0.6)' },
+          '100%': { transform: 'translateX(300%) scaleX(0.3)' },
+        },
+      },
+      animation: {
+        'progress-indeterminate': 'progress-indeterminate 1.5s ease-in-out infinite',
+      },
+    },
   },
   plugins: [],
 };

@@ -1,0 +1,36 @@
+services:
+  templite:
+    build: .
+    container_name: templite
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      # Max concurrent Playwright/Chromium launches (each ~350 MB).
+      # 2 is safe on a 4 GB instance; drop to 1 on a 2 GB instance.
+      PDF_CONCURRENCY: "2"
+      # asyncio-level timeout for the full LLM + PDF pipeline (seconds).
+      # Must be < Gunicorn --timeout (300) so Python fires first.
+      PDF_TIMEOUT: "240"
+      # Delete generated PDFs after this many seconds (2 hours).
+      PDF_MAX_AGE: "7200"
+      # Comma-separated list of origins allowed by CORS.
+      # Add your production domain here, e.g. "https://resume.example.com"
+      ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    deploy:
+      resources:
+        limits:
+          # Hard cap: if the container exceeds this Docker kills + restarts it
+          # cleanly rather than the kernel OOM-killing random processes.
+          # 3 GB leaves ~1 GB for the OS and Docker daemon on a 4 GB instance.
+          memory: 3g
+        reservations:
+          memory: 256m
+    volumes:
+      - ./server/generated_resume:/app/server/generated_resume
+      - ./server/images:/app/server/images
+      - ./token.json:/app/token.json

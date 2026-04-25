@@ -1,4 +1,4 @@
-# Environment variables (API keys)
+# Environment variables
 .env
 .env.local
 .env.*.local
@@ -18,9 +18,9 @@ venv/
 env/
 .venv/
 
-# Generated output files
-generated html/
-generated resume/
+# Generated output (runtime)
+server/generated_resume/
+server/images/
 
 # Node / React
 client/node_modules/
@@ -37,5 +37,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code local settings
+# Claude Code
 .claude/

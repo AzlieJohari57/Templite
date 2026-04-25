@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node
+client/node_modules/
+client/.bolt/
+
+# Dev/generated output
+server/generated_html/
+server/generated_resume/
+server/images/
+
+# Secrets (mount at runtime or pass via env)
+token.json
+
+# Git & IDE
+.git/
+.gitignore
+*.md
+context/

@@ -1,0 +1,8 @@
+# Build frontend
+cd client && npm install && npm run build && cd ..
+
+# Install backend deps
+cd server && pip install -r requirements.txt && playwright install chromium
+
+# Run (serves both API + frontend)
+HOST=0.0.0.0 PORT=8000 python main.py

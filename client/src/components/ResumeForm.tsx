@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Upload, Plus, Send, User, Briefcase, GraduationCap, Award, Target, Users, Code, Heart, Star, Calendar, ChevronDown, ChevronUp, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
-import { uploadImage, submitResume } from '../services/api';
+import { uploadImage, submitResume, getResumeStatus, JobStatus } from '../services/api';
 import { translations, Language as AppLanguage } from '../translations';
 import { generateJobProfile } from '../services/gemini';
 
@@ -62,100 +62,121 @@ interface FormData {
 }
 
 interface ResumeFormProps {
-  selectedTemplate: string;
+  selectedTemplateRef: React.RefObject<string>;
   selectedLanguage: AppLanguage;
 }
 
-const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLanguage }) => {
-  const t = translations[selectedLanguage].form;
+// Static data outside component — never recreated on render
+const TEMPLATE_NAMES: Record<string, { en: string; bm: string }> = {
+  A: { en: 'Template A - Classic', bm: 'Templat A - Klasik' },
+  B: { en: 'Template B - ATS Friendly', bm: 'Templat B - Mesra ATS' },
+  C: { en: 'Template C - Executive', bm: 'Templat C - Eksekutif' },
+  D: { en: 'Template D - Creative', bm: 'Templat D - Kreatif' },
+  E: { en: 'Template E - Elegant', bm: 'Templat E - Elegan' },
+  F: { en: 'Template F - Simple', bm: 'Templat F - Ringkas' },
+  G: { en: 'Template G - Compact', bm: 'Templat G - Padat' },
+  H: { en: 'Template H - Professional', bm: 'Templat H - Profesional' },
+  I: { en: 'Template I - Modern', bm: 'Templat I - Moden' },
+  J: { en: 'Template J - Technical', bm: 'Templat J - Teknikal' },
+  K: { en: 'Template K - Minimal', bm: 'Templat K - Minimal' },
+  L: { en: 'Template L - Stylish', bm: 'Templat L - Bergaya' },
+  M: { en: 'Template M - ATS Friendly', bm: 'Templat M - Mesra ATS' },
+};
+
+const COMMON_TECHNICAL_SKILLS = [
+  { skill: 'JavaScript', percentage: 85 },
+  { skill: 'React', percentage: 80 },
+  { skill: 'Python', percentage: 75 },
+  { skill: 'Node.js', percentage: 70 },
+];
+
+const COMMON_SOFT_SKILLS = [
+  { skill: 'Communication', percentage: 90 },
+  { skill: 'Teamwork', percentage: 85 },
+  { skill: 'Problem Solving', percentage: 80 },
+  { skill: 'Leadership', percentage: 75 },
+];
+
+const INITIAL_FORM_DATA = {
+  name: '', address: '', email: '', telephone: '', linkedin: '', title: '',
+  about: '', image: null as File | null,
+  languages: [{ language: '', proficiency: 'beginner' }],
+  experiences: [{ company: '', title: '', location: '', duration: '', details: '' }],
+  education: { degree: '', institution: '', cgpa: '', duration: '' },
+  strength: '',
+  reference: { name: '', position: '', company: '', contact: '' },
+  technicalSkills: [{ skill: '', percentage: 50 }],
+  softSkills: [{ skill: '', percentage: 50 }],
+  certifications: [''],
+  achievements: [''],
+  extracurricularActivities: [{ title: '', date: '', details: '' }],
+  location: '', language: 'English',
+};
+
+const INITIAL_OPTIONAL_FIELDS = {
+  linkedin: false, languages: false, certifications: false,
+  achievements: false, extracurricular: false, reference: false,
+};
+
+const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplateRef, selectedLanguage }) => {
+  const t = useMemo(() => translations[selectedLanguage].form, [selectedLanguage]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitDone, setSubmitDone] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [showReview, setShowReview] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [showOptionalFields, setShowOptionalFields] = useState({
-    linkedin: false,
-    languages: false,
-    certifications: false,
-    achievements: false,
-    extracurricular: false,
-    reference: false
-  });
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    address: '',
-    email: '',
-    telephone: '',
-    linkedin: '',
-    title: '',
-    about: '',
-    image: null,
-    languages: [{ language: '', proficiency: 'beginner' }],
-    experiences: [{ company: '', title: '', location: '', duration: '', details: '' }],
-    education: { degree: '', institution: '', cgpa: '', duration: '' },
-    strength: '',
-    reference: { name: '', position: '', company: '', contact: '' },
-    technicalSkills: [{ skill: '', percentage: 50 }],
-    softSkills: [{ skill: '', percentage: 50 }],
-    certifications: [''],
-    achievements: [''],
-    extracurricularActivities: [{ title: '', date: '', details: '' }],
-    location: '',
-    language: 'English'
-  });
+  const [showOptionalFields, setShowOptionalFields] = useState(INITIAL_OPTIONAL_FIELDS);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleNestedInputChange = useCallback((section: string, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [section]: { ...(prev[section as keyof FormData] as any), [field]: value },
     }));
-  };
+  }, []);
 
-  const handleNestedInputChange = (section: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof FormData] as any,
-        [field]: value
-      }
-    }));
-  };
-
-  const handleArrayInputChange = (section: string, index: number, field: string, value: any) => {
+  const handleArrayInputChange = useCallback((section: string, index: number, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [section]: (prev[section as keyof FormData] as any[]).map((item, i) =>
         i === index ? { ...item, [field]: value } : item
-      )
+      ),
     }));
-  };
+  }, []);
 
-  const handleSimpleArrayChange = (section: string, index: number, value: string) => {
+  const handleSimpleArrayChange = useCallback((section: string, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
       [section]: (prev[section as keyof FormData] as string[]).map((item, i) =>
         i === index ? value : item
-      )
+      ),
     }));
-  };
+  }, []);
 
-  const addArrayItem = (section: string, defaultItem: any) => {
+  const addArrayItem = useCallback((section: string, defaultItem: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: [...(prev[section as keyof FormData] as any[]), defaultItem]
+      [section]: [...(prev[section as keyof FormData] as any[]), defaultItem],
     }));
-  };
+  }, []);
 
-  const removeArrayItem = (section: string, index: number) => {
+  const removeArrayItem = useCallback((section: string, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [section]: (prev[section as keyof FormData] as any[]).filter((_, i) => i !== index)
+      [section]: (prev[section as keyof FormData] as any[]).filter((_, i) => i !== index),
     }));
-  };
+  }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+  const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
       setFormData(prev => ({ ...prev, image: e.target.files![0] }));
     }
-  };
+  }, []);
 
   const formatSubmissionData = (imageUrl: string) => {
     // Format languages as array of objects: [{"English": "professional"}, ...]
@@ -271,7 +292,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     // Build the final submission object matching the expected JSON structure
     return {
       language: selectedLanguage,
-      template: selectedTemplate,
+      template: selectedTemplateRef.current,
       resume: {
         id: String(Math.floor(Math.random() * 10000)),
         name: formData.name,
@@ -296,52 +317,59 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setShowReview(true);
-  };
+  }, []);
 
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError('');
+    setJobStatus(null);
 
     try {
-      // First upload image if provided
       let imageUrl = '';
       if (formData.image) {
-        const uploadResponse = await uploadImage(formData.image);
+        const uploadResponse = await uploadImage(formData.image, formData.telephone);
         imageUrl = uploadResponse.image_url;
       }
 
-      // Format and submit the data to create-resume endpoint
-      const submissionData = formatSubmissionData(imageUrl);
-      const result = await submitResume(submissionData);
+      // POST returns instantly with a job_id — no long wait here.
+      const { job_id } = await submitResume(formatSubmissionData(imageUrl));
+      setJobStatus('pending');
 
-      if (result.success) {
-        const successMessage = selectedLanguage === 'English'
-          ? `Resume created successfully!\n\nPDF saved to: ${result.pdf_path}`
-          : `Resume berjaya dicipta!\n\nPDF disimpan di: ${result.pdf_path}`;
-        alert(successMessage);
-        setShowReview(false);
-      } else {
-        throw new Error(result.message);
-      }
+      // Poll every 3 s until the job finishes.
+      const poll = async () => {
+        try {
+          const status = await getResumeStatus(job_id);
+          setJobStatus(status.status);
+
+          if (status.status === 'done') {
+            setSubmitDone(true);
+            setIsSubmitting(false);
+          } else if (status.status === 'failed') {
+            setSubmitError(status.error || 'Resume generation failed. Please try again.');
+            setIsSubmitting(false);
+          } else {
+            setTimeout(poll, 3000);
+          }
+        } catch (err) {
+          setSubmitError(err instanceof Error ? err.message : 'Lost connection. Please try again.');
+          setIsSubmitting(false);
+        }
+      };
+
+      setTimeout(poll, 3000);
     } catch (error) {
       console.error('Submission error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(selectedLanguage === 'English'
-        ? `Failed to create resume: ${errorMessage}`
-        : `Gagal mencipta resume: ${errorMessage}`);
-    } finally {
+      setSubmitError(error instanceof Error ? error.message : 'Unknown error');
       setIsSubmitting(false);
     }
   };
 
-  const toggleOptionalField = (field: keyof typeof showOptionalFields) => {
-    setShowOptionalFields(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
-  };
+  const toggleOptionalField = useCallback((field: keyof typeof showOptionalFields) => {
+    setShowOptionalFields(prev => ({ ...prev, [field]: !prev[field] }));
+  }, []);
 
   const autofillWithAI = async () => {
     if (!formData.title.trim()) {
@@ -368,104 +396,44 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
     }
   };
 
-  const autofillSkills = () => {
-    const commonTechnicalSkills = [
-      { skill: 'JavaScript', percentage: 85 },
-      { skill: 'React', percentage: 80 },
-      { skill: 'Python', percentage: 75 },
-      { skill: 'Node.js', percentage: 70 }
-    ];
-    const commonSoftSkills = [
-      { skill: 'Communication', percentage: 90 },
-      { skill: 'Teamwork', percentage: 85 },
-      { skill: 'Problem Solving', percentage: 80 },
-      { skill: 'Leadership', percentage: 75 }
-    ];
-    
+  const autofillSkills = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      technicalSkills: commonTechnicalSkills,
-      softSkills: commonSoftSkills
+      technicalSkills: COMMON_TECHNICAL_SKILLS,
+      softSkills: COMMON_SOFT_SKILLS,
     }));
-  };
+  }, []);
 
-  const autofillAboutMe = () => {
-    setFormData(prev => ({
-      ...prev,
-      about: t.aboutMePlaceholder
-    }));
-  };
+  const autofillAboutMe = useCallback(() => {
+    setFormData(prev => ({ ...prev, about: t.aboutMePlaceholder }));
+  }, [t]);
 
-  const getSkillLevel = (percentage: number): string => {
+  const getSkillLevel = useCallback((percentage: number): string => {
     if (percentage <= 25) return t.skillLevelBeginner;
     if (percentage <= 50) return t.skillLevelIntermediate;
     if (percentage <= 75) return t.skillLevelAdvanced;
     return t.skillLevelExpert;
-  };
+  }, [t]);
 
-  const getSkillLevelColor = (percentage: number): string => {
+  const getSkillLevelColor = useCallback((percentage: number): string => {
     if (percentage <= 25) return 'text-blue-600 dark:text-blue-400';
     if (percentage <= 50) return 'text-green-600 dark:text-green-400';
     if (percentage <= 75) return 'text-orange-600 dark:text-orange-400';
     return 'text-purple-600 dark:text-purple-400';
-  };
+  }, []);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (window.confirm(t.resetConfirm)) {
-      setFormData({
-        name: '',
-        address: '',
-        email: '',
-        telephone: '',
-        linkedin: '',
-        title: '',
-        about: '',
-        image: null,
-        languages: [{ language: '', proficiency: 'beginner' }],
-        experiences: [{ company: '', title: '', location: '', duration: '', details: '' }],
-        education: { degree: '', institution: '', cgpa: '', duration: '' },
-        strength: '',
-        reference: { name: '', position: '', company: '', contact: '' },
-        technicalSkills: [{ skill: '', percentage: 50 }],
-        softSkills: [{ skill: '', percentage: 50 }],
-        certifications: [''],
-        achievements: [''],
-        extracurricularActivities: [{ title: '', date: '', details: '' }],
-        location: '',
-        language: 'English'
-      });
-      setShowOptionalFields({
-        linkedin: false,
-        languages: false,
-        certifications: false,
-        achievements: false,
-        extracurricular: false,
-        reference: false
-      });
+      setFormData(INITIAL_FORM_DATA);
+      setShowOptionalFields(INITIAL_OPTIONAL_FIELDS);
     }
-  };
+  }, [t]);
 
-  // Template names mapping (A to L)
-  const templateNames: Record<string, { en: string; bm: string }> = {
-    'A': { en: 'Template A - Classic', bm: 'Templat A - Klasik' },
-    'B': { en: 'Template B - ATS Friendly', bm: 'Templat B - Mesra ATS' },
-    'C': { en: 'Template C - Executive', bm: 'Templat C - Eksekutif' },
-    'D': { en: 'Template D - Creative', bm: 'Templat D - Kreatif' },
-    'E': { en: 'Template E - Elegant', bm: 'Templat E - Elegan' },
-    'F': { en: 'Template F - Simple', bm: 'Templat F - Ringkas' },
-    'G': { en: 'Template G - Compact', bm: 'Templat G - Padat' },
-    'H': { en: 'Template H - Professional', bm: 'Templat H - Profesional' },
-    'I': { en: 'Template I - Modern', bm: 'Templat I - Moden' },
-    'J': { en: 'Template J - Technical', bm: 'Templat J - Teknikal' },
-    'K': { en: 'Template K - Minimal', bm: 'Templat K - Minimal' },
-    'L': { en: 'Template L - Stylish', bm: 'Templat L - Bergaya' },
-    'M': { en: 'Template M - ATS Friendly', bm: 'Templat M - Mesra ATS' },
-  };
-
-  const getTemplateName = () => {
-    const template = templateNames[selectedTemplate] || { en: `Template ${selectedTemplate}`, bm: `Templat ${selectedTemplate}` };
+  const getTemplateName = useMemo(() => {
+    const id = selectedTemplateRef.current;
+    const template = TEMPLATE_NAMES[id] || { en: `Template ${id}`, bm: `Templat ${id}` };
     return selectedLanguage === 'English' ? template.en : template.bm;
-  };
+  }, [selectedLanguage, selectedTemplateRef]);
 
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-yellow-200 dark:border-gray-700">
@@ -475,13 +443,13 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mr-4">
-                <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplate}</span>
+                <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplateRef.current}</span>
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {selectedLanguage === 'English' ? 'Selected Template' : 'Templat Dipilih'}
                 </p>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{getTemplateName()}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{getTemplateName}</h3>
               </div>
             </div>
             <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
@@ -1321,6 +1289,76 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
+
+              {/* Processing overlay */}
+              {isSubmitting && (
+                <div className="flex flex-col items-center justify-center py-16 space-y-6">
+                  <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                      {jobStatus === 'pending'
+                        ? (selectedLanguage === 'English' ? 'Waiting in queue…' : 'Menunggu giliran…')
+                        : (selectedLanguage === 'English' ? 'Building your resume…' : 'Sedang menyediakan resume anda…')}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {jobStatus === 'pending'
+                        ? (selectedLanguage === 'English'
+                            ? 'Server is busy. You will be processed shortly.'
+                            : 'Pelayan sedang sibuk. Anda akan diproses sebentar lagi.')
+                        : (selectedLanguage === 'English'
+                            ? 'AI is enhancing your content and generating the PDF. This takes 1–2 minutes.'
+                            : 'AI sedang memperhalusi kandungan dan menjana PDF. Ini mengambil masa 1–2 minit.')}
+                    </p>
+                  </div>
+                  <div className="w-full max-w-sm bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <div className="h-2 bg-yellow-400 rounded-full animate-progress-indeterminate"></div>
+                  </div>
+                  {jobStatus === 'processing' && (
+                    <div className="flex flex-col items-center space-y-1 text-xs text-gray-400 dark:text-gray-500">
+                      <span>{selectedLanguage === 'English' ? '✦ Enhancing experience & skills' : '✦ Memperhalusi pengalaman & kemahiran'}</span>
+                      <span>{selectedLanguage === 'English' ? '✦ Generating PDF layout' : '✦ Menjana susun atur PDF'}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Success screen */}
+              {submitDone && !isSubmitting && (
+                <div className="flex flex-col items-center justify-center py-16 space-y-6 text-center">
+                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      {selectedLanguage === 'English' ? "We've Received Your Resume!" : 'Resume Anda Telah Diterima!'}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 max-w-md">
+                      {selectedLanguage === 'English'
+                        ? "Thank you for submitting your details. Your resume is being finalized and will be ready shortly. We'll get back to you as soon as it's complete!"
+                        : 'Terima kasih kerana menghantar maklumat anda. Resume anda sedang disiapkan dan akan sedia tidak lama lagi. Kami akan menghubungi anda sebaik sahaja ia selesai!'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setShowReview(false); setSubmitDone(false); }}
+                    className="mt-4 px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    {selectedLanguage === 'English' ? 'Submit Another Resume' : 'Hantar Resume Lain'}
+                  </button>
+                </div>
+              )}
+
+              {/* Error message */}
+              {submitError && !isSubmitting && !submitDone && (
+                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                  {selectedLanguage === 'English' ? `Something went wrong: ${submitError}` : `Ralat berlaku: ${submitError}`}
+                </div>
+              )}
+
+              {/* Normal review content — hidden while processing or done */}
+              {!isSubmitting && !submitDone && (
+              <>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.reviewTitle}</h2>
                 <button
@@ -1478,19 +1516,12 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplate, selectedLangu
                   disabled={isSubmitting}
                   className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      {t.submitting}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      {t.submitResume}
-                    </>
-                  )}
+                  <Send className="w-4 h-4 mr-2" />
+                  {t.submitResume}
                 </button>
               </div>
+              </>
+              )}
             </div>
           </div>
         </div>

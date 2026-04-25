@@ -1,0 +1,15 @@
+python-dotenv
+fastapi
+uvicorn[standard]
+gunicorn
+python-multipart
+langchain
+langchain-core
+langchain-openai
+jinja2
+playwright
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+pillow
+pillow-heif

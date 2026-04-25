@@ -233,8 +233,8 @@ export const translations = {
       cgpa: 'CGPA',
       cgpaPlaceholder: 'cth., 3.75',
       
-      strengths: 'Kekuatan',
-      strengthsPlaceholder: 'Terangkan kekuatan utama anda dan apa yang membuatkan anda unik...',
+      strengths: 'Kelebihan',
+      strengthsPlaceholder: 'Terangkan kelebihan utama anda dan apa yang membuatkan anda menonjol...',
       
       technicalSkills: 'Kemahiran Teknikal',
       softSkills: 'Kemahiran Insaniah',
