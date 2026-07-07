@@ -13,3 +13,8 @@ google-auth-httplib2
 google-auth-oauthlib
 pillow
 pillow-heif
+requests
+# Alibaba Cloud — OSS storage + Function Compute async invocation
+oss2
+alibabacloud_fc20230330
+alibabacloud_tea_openapi

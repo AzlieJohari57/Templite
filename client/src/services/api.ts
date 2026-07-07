@@ -8,7 +8,8 @@ export interface ResumeJobResponse {
 
 export interface ResumeStatusResponse {
   status: JobStatus;
-  pdf_path?: string;
+  pdf_url?: string;   // time-limited OSS download URL
+  pdf_path?: string;  // legacy field, kept for compatibility
   drive_url?: string;
   error?: string;
 }

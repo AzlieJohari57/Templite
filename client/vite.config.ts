@@ -17,7 +17,6 @@ export default defineConfig({
         manualChunks: {
           react: ['react', 'react-dom'],
           lucide: ['lucide-react'],
-          gemini: ['@google/generative-ai'],
         },
       },
     },

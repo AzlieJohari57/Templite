@@ -4,7 +4,7 @@
 set -e
 
 APP_DIR="/opt/templite"
-DOMAIN=""   # Set your domain or server IP e.g. "123.45.67.89" or "resume.example.com"
+DOMAIN="47.237.116.213"
 PORT=8000
 
 echo "=== Templite Deployment ==="
@@ -91,11 +91,12 @@ echo ""
 echo "=== Deployment complete ==="
 echo "App running at: http://${DOMAIN:-localhost}:$PORT"
 echo ""
-echo "Memory budget (4 GB instance):"
-echo "  OS + Docker daemon : ~400 MB"
-echo "  Container limit    : 3 GB  (set in docker-compose.yml)"
-echo "  Peak Chromium ×2   : ~700 MB  (PDF_CONCURRENCY=2)"
-echo "  Headroom           : ~1.9 GB"
+echo "Memory budget (8 GiB instance):"
+echo "  OS + Docker daemon : ~500 MB"
+echo "  Container limit    : 6 GB  (set in docker-compose.yml)"
+echo "  Peak Chromium ×2   : ~800 MB  (PDF_CONCURRENCY=2)"
+echo "  Peak LLM threads×6 : ~300 MB  (LLM_CONCURRENCY=6)"
+echo "  Headroom           : ~4.4 GB"
 echo "  Swap safety net    : +2 GB"
 echo ""
 echo "Next steps:"

@@ -1,15 +1,13 @@
-from fastapi import FastAPI, Form, HTTPException, UploadFile, File
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Any
 from pathlib import Path
 import asyncio
-import shutil
 import uvicorn
 import os
-import time
 import uuid
 from PIL import Image
 import pillow_heif
@@ -18,62 +16,28 @@ pillow_heif.register_heif_opener()
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from create_resume import pipeline_phase1_llm, pipeline_phase2_pdf
+_missing_env = [k for k in ("OPENAI_API_KEY",) if not os.getenv(k)]
+if _missing_env:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(_missing_env)}")
+
+from create_resume import get_llm
 from gdrive import get_auth_url, save_token_from_code, is_authorized, upload_image_to_drive
+import jobstore
+import fc_async
+import oss_storage
+from worker import run_resume_job
 
-IMAGES_DIR = Path(__file__).parent / "images"
+# Ephemeral scratch dir for image conversion. On Function Compute only /tmp is
+# writable; the converted JPEG is uploaded to OSS + Google Drive and the local
+# copy is discarded within the same request.
+import tempfile
+IMAGES_DIR = Path(tempfile.gettempdir()) / "images"
 IMAGES_DIR.mkdir(exist_ok=True)
-
-GENERATED_PDF_DIR = Path(__file__).parent / "generated_resume"
-
-# Limit concurrent Playwright/Chromium instances.
-# Each Chromium process uses ~300-400 MB. On a 4 GB instance with 2 Gunicorn
-# workers, this caps peak Chromium RAM at 2 × 2 × 350 MB = 1.4 GB total.
-_PDF_CONCURRENCY = int(os.getenv("PDF_CONCURRENCY", "2"))
-_pdf_semaphore: asyncio.Semaphore | None = None  # initialised in lifespan
-
-# Request timeout covers the full LLM + Playwright pipeline (seconds).
-PDF_TIMEOUT = int(os.getenv("PDF_TIMEOUT", "240"))
-
-# Delete generated PDFs and job records older than this many seconds.
-PDF_MAX_AGE = int(os.getenv("PDF_MAX_AGE", "7200"))  # 2 hours
-
-# In-memory job store — fine for single-server deployment (no Redis needed).
-# Each entry: {"status": str, "result": dict|None, "error": str|None, "created_at": float}
-_jobs: dict[str, dict] = {}
-
-
-async def _cleanup_old_pdfs() -> None:
-    """Background task: delete PDFs and job records older than PDF_MAX_AGE."""
-    while True:
-        await asyncio.sleep(1800)  # run every 30 minutes
-        cutoff = time.time() - PDF_MAX_AGE
-        for f in GENERATED_PDF_DIR.glob("*.pdf"):
-            try:
-                if f.stat().st_mtime < cutoff:
-                    f.unlink()
-            except OSError:
-                pass
-        stale = [jid for jid, j in _jobs.items() if j["created_at"] < cutoff]
-        for jid in stale:
-            _jobs.pop(jid, None)
-
-
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global _pdf_semaphore
-    _pdf_semaphore = asyncio.Semaphore(_PDF_CONCURRENCY)
-    cleanup_task = asyncio.create_task(_cleanup_old_pdfs())
-    yield
-    cleanup_task.cancel()
 
 
 app = FastAPI(
     title="Resume Generator API",
     description="Generate professional resumes from JSON data",
-    lifespan=lifespan,
 )
 
 _ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
@@ -85,90 +49,163 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 class CreateResumeRequest(BaseModel):
     resume: dict[str, Any]
-    template: str = "A"
-    language: str = "English"
+    template: str = Field("A", pattern=r"^[A-M]$")
+    language: str = Field("English", max_length=20)
 
 
-async def _run_resume_job(job_id: str, request: CreateResumeRequest) -> None:
-    """
-    Two-phase pipeline:
-      Phase 1 — LLM enhancement + HTML render. Runs freely for all users in parallel.
-                 Uses only OpenAI network I/O, no Chromium, no RAM spike.
-      Phase 2 — Playwright PDF generation. Semaphore-guarded: only PDF_CONCURRENCY
-                 Chromium instances run at a time (~350 MB each).
-    """
-    _jobs[job_id]["status"] = "processing"
-    try:
-        # Phase 1: all users run this simultaneously — no semaphore needed
-        enhanced_resume, html_content, file_id = await asyncio.wait_for(
-            asyncio.to_thread(
-                pipeline_phase1_llm,
-                resume_data=request.resume,
-                template_key=request.template,
-                language=request.language,
-            ),
-            timeout=PDF_TIMEOUT,
-        )
+class GenerateProfileRequest(BaseModel):
+    job_title: str = Field(..., max_length=200)
+    language: str = Field("English", max_length=20)
 
-        # Phase 2: semaphore only gates Playwright — LLM time is not wasted waiting
-        async with _pdf_semaphore:
-            result = await asyncio.wait_for(
-                asyncio.to_thread(pipeline_phase2_pdf, html_content, file_id),
-                timeout=60,
-            )
 
-        result["enhanced_data"] = enhanced_resume
-        _jobs[job_id]["status"] = "done"
-        _jobs[job_id]["result"] = result
-    except asyncio.TimeoutError:
-        _jobs[job_id]["status"] = "failed"
-        _jobs[job_id]["error"] = "Resume generation timed out. Please try again."
-    except Exception as e:
-        _jobs[job_id]["status"] = "failed"
-        _jobs[job_id]["error"] = str(e)
+class LogOrderRequest(BaseModel):
+    action: str = Field(..., max_length=50)
+    sessionId: str = Field(..., max_length=100)
+    channel: str = Field("", max_length=20)
+    value: str = Field("", max_length=100)
+    language: str = Field("", max_length=20)
+    name: str = Field("", max_length=200)
+    email: str = Field("", max_length=254)
+    jobTitle: str = Field("", max_length=200)
+    template: str = Field("", max_length=5)
+    pages: str = Field("", max_length=5)
+    resumeLink: str = Field("", max_length=500)
 
 
 @app.post("/api/create-resume")
 async def create_resume(request: CreateResumeRequest):
     """
     Start resume generation and return a job_id immediately.
-    Poll GET /api/resume-status/{job_id} to track progress.
+    The heavy LLM + Playwright pipeline runs in a separate Function Compute
+    async invocation (see fc_async.submit_job); progress is written to the OSS
+    job store. Poll GET /api/resume-status/{job_id} to track it.
     """
     job_id = str(uuid.uuid4())
-    _jobs[job_id] = {
-        "status": "pending",
-        "result": None,
-        "error": None,
-        "created_at": time.time(),
-    }
-    asyncio.create_task(_run_resume_job(job_id, request))
+    jobstore.create_job(job_id)
+    try:
+        fc_async.submit_job(job_id, {
+            "resume": request.resume,
+            "template": request.template,
+            "language": request.language,
+        })
+    except Exception as e:
+        jobstore.update_job(job_id, status="failed", error=f"Could not start job: {e}")
+        raise HTTPException(status_code=502, detail="Could not start resume generation.")
     return {"job_id": job_id}
+
+
+@app.post("/invoke")
+async def invoke(request: Request):
+    """
+    Function Compute worker entrypoint (async event invocation).
+    FC delivers the event as the POST body: {"job_id": ..., "payload": {...}}.
+    Not exposed publicly — only the worker function's event trigger hits this.
+    """
+    event = await request.json()
+    job_id = event["job_id"]
+    payload = event["payload"]
+    # Run the (blocking) pipeline off the event loop.
+    await asyncio.to_thread(run_resume_job, job_id, payload)
+    return {"ok": True, "job_id": job_id}
 
 
 @app.get("/api/resume-status/{job_id}")
 async def resume_status(job_id: str):
     """Poll this endpoint every few seconds after calling /api/create-resume."""
-    job = _jobs.get(job_id)
+    job = jobstore.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found or expired.")
 
     response: dict[str, Any] = {"status": job["status"]}
 
     if job["status"] == "done":
-        response["pdf_path"] = job["result"]["pdf_path"]
-        response["drive_url"] = job["result"].get("drive_url")
+        result = job["result"] or {}
+        response["pdf_url"] = result.get("pdf_url")      # signed OSS download URL
+        response["pdf_path"] = result.get("pdf_path")    # kept for backward compat
+        response["drive_url"] = result.get("drive_url")
 
     if job["status"] == "failed":
         response["error"] = job["error"]
 
     return response
+
+
+@app.post("/api/generate-profile")
+async def generate_profile(request: GenerateProfileRequest):
+    """Generate AI-suggested resume profile (about me, skills, strengths) for a given job title."""
+    if not request.job_title.strip():
+        raise HTTPException(status_code=400, detail="job_title is required")
+
+    is_bm = request.language == "BM"
+
+    if is_bm:
+        prompt = (
+            f"Anda adalah penulis resume profesional. Jana profil resume untuk jawatan '{request.job_title}'.\n\n"
+            "Balas dengan HANYA objek JSON (tiada markdown, tiada blok kod):\n"
+            '{{"aboutMe":"2-3 ayat Tentang Saya","technicalSkills":[{{"skill":"kemahiran","percentage":75}}],'
+            '"softSkills":[{{"skill":"kemahiran","percentage":80}}],"strengths":"2-3 ayat kelebihan"}}\n\n'
+            f"Sertakan 4 kemahiran teknikal dan 4 kemahiran insaniah yang berkaitan dengan '{request.job_title}'."
+        )
+    else:
+        prompt = (
+            f"You are a professional resume writer. Generate a resume profile for a '{request.job_title}' position.\n\n"
+            "Reply with ONLY a JSON object (no markdown, no code blocks):\n"
+            '{{"aboutMe":"2-3 sentence About Me","technicalSkills":[{{"skill":"skill name","percentage":75}}],'
+            '"softSkills":[{{"skill":"skill name","percentage":80}}],"strengths":"2-3 sentence strengths paragraph"}}\n\n'
+            f"Include 4 technical skills and 4 soft skills relevant to '{request.job_title}'."
+        )
+
+    try:
+        llm = get_llm()
+        response = await asyncio.to_thread(llm.invoke, prompt)
+        import json, re
+        text = response.content.strip()
+        # strip markdown fences if model adds them despite instructions
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+        data = json.loads(text)
+        return data
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned malformed JSON. Please try again.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+_SHEETS_WEBHOOK_URL = os.getenv("SHEETS_WEBHOOK_URL", "")
+
+
+@app.post("/api/log-order")
+async def log_order(payload: LogOrderRequest):
+    if not _SHEETS_WEBHOOK_URL:
+        print(f"[Sheet] ERROR: SHEETS_WEBHOOK_URL is not set in .env")
+        return {"success": False, "reason": "no webhook configured"}
+    try:
+        import requests as _req
+        def _post():
+            r = _req.post(_SHEETS_WEBHOOK_URL, json=payload.model_dump(), timeout=15, allow_redirects=True)
+            print(f"[Sheet] {payload.action} → status={r.status_code} body={r.text[:300]}")
+            return r
+        await asyncio.to_thread(_post)
+        return {"success": True}
+    except Exception as e:
+        print(f"[Sheet] Log failed: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/auth/google")
@@ -229,13 +266,27 @@ async def upload_image(image: UploadFile = File(...), phone: str = Form(...)):
     finally:
         raw_path.unlink(missing_ok=True)
 
-    # Upload image to Google Drive
+    # Upload the JPEG to OSS and return an absolute URL. The PDF render happens
+    # in a *separate* worker invocation, so the profile image must be reachable
+    # over HTTPS (Chromium loads it by URL) rather than by local relative path.
     try:
-        upload_image_to_drive(image_path)
-    except Exception as e:
-        print(f"[GDrive] Image upload failed: {e}")
+        if oss_storage.is_configured():
+            key = oss_storage.put_image(phone_clean, image_path)
+            image_url = oss_storage.signed_url(key)
+        else:
+            image_url = f"../images/{phone_clean}.jpg"  # local-dev fallback
 
-    return {"success": True, "image_url": f"../images/{phone_clean}.jpg"}
+        # Also archive a copy to Google Drive (best-effort).
+        try:
+            upload_image_to_drive(image_path)
+        except Exception as e:
+            print(f"[GDrive] Image upload failed: {e}")
+    finally:
+        # Discard the ephemeral local copy once uploaded.
+        if oss_storage.is_configured():
+            image_path.unlink(missing_ok=True)
+
+    return {"success": True, "image_url": image_url}
 
 
 # Serve built frontend in production

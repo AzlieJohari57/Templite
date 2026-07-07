@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from gdrive import upload_pdf_to_drive
+import oss_storage
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -24,9 +25,11 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 BASE_DIR = Path(__file__).parent
 TEMPLATES_DIR_EN = BASE_DIR / "templates" / "english"
 TEMPLATES_DIR_BM = BASE_DIR / "templates" / "bahasa_malaysia"
-GENERATED_PDF_DIR = BASE_DIR / "generated_resume"
 
-# Ensure output directory exists
+# Ephemeral scratch dir. On Function Compute only /tmp is writable and it is
+# wiped per instance — that is fine, the PDF is uploaded to OSS + Google Drive
+# within the same request before the file is needed again.
+GENERATED_PDF_DIR = Path(tempfile.gettempdir()) / "generated_resume"
 GENERATED_PDF_DIR.mkdir(exist_ok=True)
 
 
@@ -381,7 +384,10 @@ def render_to_html(resume: dict, template_key: str, language: str = "English") -
     templates_dir = get_templates_dir(language)
     template_file = get_template_file(template_key)
 
-    env = Environment(loader=FileSystemLoader(str(templates_dir)))
+    env = Environment(
+        loader=FileSystemLoader(str(templates_dir)),
+        autoescape=select_autoescape(["html"]),
+    )
     template = env.get_template(template_file)
 
     return template.render(**resume)
@@ -421,7 +427,17 @@ def convert_html_to_pdf(html_path: str | Path, pdf_path: str | Path) -> Path:
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--no-zygote",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-default-apps",
+                ],
+            )
             try:
                 context = browser.new_context()
                 page = context.new_page()
@@ -438,6 +454,7 @@ def convert_html_to_pdf(html_path: str | Path, pdf_path: str | Path) -> Path:
                     margin={"top": "0.5mm", "bottom": "0.5mm", "left": "0.5mm", "right": "0.5mm"},
                 )
             finally:
+                context.close()
                 browser.close()
 
         print(f"  PDF saved to: {pdf_path}")
@@ -468,14 +485,17 @@ def enhance_resume(resume: dict, language: str = "English") -> dict:
     def _achievements():enhance_achievements(resume, get_llm())
 
     with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [
-            executor.submit(_about),
-            executor.submit(_experience),
-            executor.submit(_strength),
-            executor.submit(_achievements),
+        named_futures = [
+            ("about",        executor.submit(_about)),
+            ("experience",   executor.submit(_experience)),
+            ("strength",     executor.submit(_strength)),
+            ("achievements", executor.submit(_achievements)),
         ]
-        for f in futures:
-            f.result()  # re-raises any exception from the thread
+        for name, f in named_futures:
+            try:
+                f.result()
+            except Exception as e:
+                print(f"Warning: {name} enhancement failed (continuing): {e}")
 
     return enhance_resume_language(resume, get_llm(), language)
 
@@ -539,11 +559,14 @@ def pipeline_phase2_pdf(
     file_id: str,
 ) -> dict:
     """
-    Phase 2 (semaphore-guarded): Playwright PDF generation + GDrive upload.
+    Phase 2 (semaphore-guarded): Playwright PDF generation + uploads.
     Chromium uses ~350 MB per instance — this is the only part that needs the semaphore.
 
+    The PDF is written to ephemeral /tmp, then uploaded to OSS (delivery via a
+    signed URL) and Google Drive. Nothing is kept on local disk.
+
     Returns:
-        {"pdf_path": str, "drive_url": str | None}
+        {"pdf_path": str, "pdf_url": str | None, "drive_url": str | None}
     """
     pdf_file_path = GENERATED_PDF_DIR / f"{file_id}_resume.pdf"
 
@@ -554,18 +577,30 @@ def pipeline_phase2_pdf(
 
     try:
         convert_html_to_pdf(tmp_html_path, pdf_file_path)
+
+        # Upload to OSS and produce a time-limited download URL for the browser.
+        pdf_url = None
+        if oss_storage.is_configured():
+            try:
+                key = oss_storage.put_pdf(file_id, pdf_file_path)
+                pdf_url = oss_storage.signed_url(key)
+                print(f"  [OSS] PDF uploaded: {key}")
+            except Exception as e:
+                print(f"  [OSS] PDF upload failed: {e}")
+
+        print("Phase 2/2: Uploading PDF to Google Drive...")
+        drive_url = None
+        try:
+            drive_url = upload_pdf_to_drive(pdf_file_path)
+            if drive_url:
+                print(f"  Uploaded: {drive_url}")
+            else:
+                print("  [GDrive] Upload skipped — not authorized or upload returned no URL.")
+        except Exception as e:
+            print(f"  [GDrive] Upload failed: {e}")
     finally:
         tmp_html_path.unlink(missing_ok=True)
+        # Free ephemeral disk immediately once uploads are done.
+        pdf_file_path.unlink(missing_ok=True)
 
-    print("Phase 2/2: Uploading PDF to Google Drive...")
-    drive_url = None
-    try:
-        drive_url = upload_pdf_to_drive(pdf_file_path)
-        if drive_url:
-            print(f"  Uploaded: {drive_url}")
-        else:
-            print("  [GDrive] Upload skipped — not authorized or upload returned no URL.")
-    except Exception as e:
-        print(f"  [GDrive] Upload failed: {e}")
-
-    return {"pdf_path": str(pdf_file_path), "drive_url": drive_url}
+    return {"pdf_path": str(pdf_file_path), "pdf_url": pdf_url, "drive_url": drive_url}

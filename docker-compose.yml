@@ -10,9 +10,13 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "8000"
+      PYTHONPATH: "/app/server"
       # Max concurrent Playwright/Chromium launches (each ~350 MB).
       # 2 is safe on a 4 GB instance; drop to 1 on a 2 GB instance.
       PDF_CONCURRENCY: "2"
+      # Max concurrent LLM jobs (Phase 1). Each spawns 4 threads + 4 ChatOpenAI objects.
+      # 6 is safe on an 8 GiB instance; 3 is the correct value for a 4 GiB instance.
+      LLM_CONCURRENCY: "3"
       # asyncio-level timeout for the full LLM + PDF pipeline (seconds).
       # Must be < Gunicorn --timeout (300) so Python fires first.
       PDF_TIMEOUT: "240"
@@ -26,10 +30,10 @@ services:
         limits:
           # Hard cap: if the container exceeds this Docker kills + restarts it
           # cleanly rather than the kernel OOM-killing random processes.
-          # 3 GB leaves ~1 GB for the OS and Docker daemon on a 4 GB instance.
-          memory: 3g
+          # 3.5 GB leaves ~500 MB for the OS and Docker daemon on a 4 GiB host.
+          memory: 3500m
         reservations:
-          memory: 256m
+          memory: 512m
     volumes:
       - ./server/generated_resume:/app/server/generated_resume
       - ./server/images:/app/server/images

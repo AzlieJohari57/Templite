@@ -1,15 +1,8 @@
-# ── Stage 1: Build React frontend ─────────────────────────────────────────────
-FROM node:20-slim AS frontend-builder
+# ── Function Compute Custom Container image ────────────────────────────────────
+# The React frontend is NOT bundled here — it is built separately and served
+# from OSS + CDN (see DEPLOYMENT_FC.md). Keeping Chromium-only in the image keeps
+# it smaller, which directly shortens Function Compute cold starts.
 
-WORKDIR /build/client
-COPY client/package*.json ./
-RUN npm ci --silent
-
-COPY client/ ./
-RUN npm run build
-
-
-# ── Stage 2: Production image ──────────────────────────────────────────────────
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -24,27 +17,25 @@ RUN playwright install chromium --with-deps
 # Copy server code and templates
 COPY server/ ./server/
 
-# Copy built frontend from Stage 1
-COPY --from=frontend-builder /build/client/dist ./client/dist/
-
 # Copy Google OAuth credentials (client ID/secret — safe to bake in)
 COPY credentials.json ./
 
-# Pre-create runtime directories
-RUN mkdir -p server/generated_resume server/images
+WORKDIR /app/server
 
-EXPOSE 8000
+# Function Compute routes both the HTTP trigger (API function) and async event
+# invocations (worker function) to the port below. FC injects the port via
+# $FC_SERVER_PORT; default to 9000 which is FC's convention.
+ENV PORT=9000
+EXPOSE 9000
 
-# 1 worker is intentional: asyncio handles concurrency within the worker.
-# Multiple workers would each hold their own semaphore, multiplying peak
-# Chromium RAM usage (N workers × PDF_CONCURRENCY × ~350 MB).
-# Gunicorn --timeout must exceed PDF_TIMEOUT (240 s) so our Python-level
-# asyncio.wait_for fires first and returns a clean 504 instead of a SIGKILL.
-CMD ["gunicorn", "server.main:app", \
-     "--workers", "1", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--timeout", "300", \
-     "--graceful-timeout", "30", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# 1 worker + instance-concurrency=1 on FC: each Chromium render gets a whole
+# instance's memory, and FC scales out by adding instances instead of threads.
+# --timeout must exceed the function timeout so FC (not gunicorn) owns the clock.
+CMD ["sh", "-c", "gunicorn main:app \
+     --workers 1 \
+     --worker-class uvicorn.workers.UvicornWorker \
+     --bind 0.0.0.0:${FC_SERVER_PORT:-${PORT:-9000}} \
+     --timeout 600 \
+     --graceful-timeout 30 \
+     --access-logfile - \
+     --error-logfile -"]

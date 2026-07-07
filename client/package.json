@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "baseline-browser-mapping": "^2.9.19",
     "caniuse-lite": "^1.0.30001766",
     "lucide-react": "^0.344.0",

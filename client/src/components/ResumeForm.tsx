@@ -1,15 +1,28 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Upload, Plus, Send, User, Briefcase, GraduationCap, Award, Target, Users, Code, Heart, Star, Calendar, ChevronDown, ChevronUp, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import {
+  Upload, Plus, Send, User, Briefcase, GraduationCap, Award, Users,
+  Code, Heart, Star, Calendar, ChevronDown, ChevronUp, RotateCcw,
+  Sparkles, Loader2, Hash, ToggleLeft, ToggleRight,
+} from 'lucide-react';
 import { uploadImage, submitResume, getResumeStatus, JobStatus } from '../services/api';
 import { translations, Language as AppLanguage } from '../translations';
 import { generateJobProfile } from '../services/gemini';
+import logo from '../assets/logo.png';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Experience {
   company: string;
   title: string;
-  location: string;
   duration: string;
   details: string;
+}
+
+interface EducationEntry {
+  institution: string;
+  qualification: string;
+  duration: string;
+  result: string;
 }
 
 interface LanguageProficiency {
@@ -28,6 +41,13 @@ interface ExtracurricularActivity {
   details: string;
 }
 
+interface ReferenceEntry {
+  name: string;
+  position: string;
+  company: string;
+  contact: string;
+}
+
 interface FormData {
   name: string;
   address: string;
@@ -37,356 +57,297 @@ interface FormData {
   title: string;
   about: string;
   image: File | null;
-  languages: LanguageProficiency[];
+  hasExperience: boolean | null;
   experiences: Experience[];
-  education: {
-    degree: string;
-    institution: string;
-    cgpa: string;
-    duration: string;
-  };
+  additionalExperience: string;
   strength: string;
-  reference: {
-    name: string;
-    position: string;
-    company: string;
-    contact: string;
-  };
+  education: EducationEntry[];
+  additionalEducation: string;
   technicalSkills: Skill[];
   softSkills: Skill[];
+  references: ReferenceEntry[];
+  additionalReference: string;
+  languages: LanguageProficiency[];
   certifications: string[];
   achievements: string[];
   extracurricularActivities: ExtracurricularActivity[];
-  location: string;
-  language: string;
 }
 
 interface ResumeFormProps {
-  selectedTemplateRef: React.RefObject<string>;
+  selectedTemplateRef: React.MutableRefObject<string | null>;
   selectedLanguage: AppLanguage;
+  resumeLanguage: AppLanguage | null;
+  selectedPages: '1' | '2' | '3+';
+  onPagesChange: (p: '1' | '2' | '3+') => void;
 }
 
-// Static data outside component — never recreated on render
+// ─── Static data ──────────────────────────────────────────────────────────────
+
 const TEMPLATE_NAMES: Record<string, { en: string; bm: string }> = {
-  A: { en: 'Template A - Classic', bm: 'Templat A - Klasik' },
-  B: { en: 'Template B - ATS Friendly', bm: 'Templat B - Mesra ATS' },
-  C: { en: 'Template C - Executive', bm: 'Templat C - Eksekutif' },
-  D: { en: 'Template D - Creative', bm: 'Templat D - Kreatif' },
-  E: { en: 'Template E - Elegant', bm: 'Templat E - Elegan' },
-  F: { en: 'Template F - Simple', bm: 'Templat F - Ringkas' },
-  G: { en: 'Template G - Compact', bm: 'Templat G - Padat' },
-  H: { en: 'Template H - Professional', bm: 'Templat H - Profesional' },
-  I: { en: 'Template I - Modern', bm: 'Templat I - Moden' },
-  J: { en: 'Template J - Technical', bm: 'Templat J - Teknikal' },
-  K: { en: 'Template K - Minimal', bm: 'Templat K - Minimal' },
-  L: { en: 'Template L - Stylish', bm: 'Templat L - Bergaya' },
-  M: { en: 'Template M - ATS Friendly', bm: 'Templat M - Mesra ATS' },
+  A: { en: 'Template A - Best Overall',  bm: 'Templat A - Terbaik Keseluruhan' },
+  B: { en: 'Template B - Coloured ATS',  bm: 'Templat B - ATS Berwarna' },
+  C: { en: 'Template C - Finance',       bm: 'Templat C - Kewangan' },
+  D: { en: 'Template D - Friendly ATS',  bm: 'Templat D - Mesra ATS' },
+  E: { en: 'Template E - Business',      bm: 'Templat E - Perniagaan' },
+  F: { en: 'Template F - Engineering',   bm: 'Templat F - Kejuruteraan' },
+  G: { en: 'Template G - Designer',      bm: 'Templat G - Designer' },
+  H: { en: 'Template H - Admin',         bm: 'Templat H - Pentadbiran' },
+  I: { en: 'Template I - HR',            bm: 'Templat I - HR' },
+  J: { en: 'Template J - Government',    bm: 'Templat J - Kerajaan' },
+  K: { en: 'Template K - CV',            bm: 'Templat K - CV' },
+  L: { en: 'Template L - Internship',    bm: 'Templat L - Latihan Industri' },
+  M: { en: 'Template M - Fully ATS',     bm: 'Templat M - ATS Penuh' },
 };
 
-const COMMON_TECHNICAL_SKILLS = [
-  { skill: 'JavaScript', percentage: 85 },
-  { skill: 'React', percentage: 80 },
-  { skill: 'Python', percentage: 75 },
-  { skill: 'Node.js', percentage: 70 },
+const TECH_SKILL_EXAMPLES: Skill[] = [
+  { skill: 'Microsoft Word', percentage: 80 },
+  { skill: 'Microsoft Excel', percentage: 75 },
+  { skill: 'Microsoft PowerPoint', percentage: 70 },
+  { skill: 'Microsoft Access', percentage: 65 },
 ];
 
-const COMMON_SOFT_SKILLS = [
+const SOFT_SKILL_EXAMPLES_EN: Skill[] = [
   { skill: 'Communication', percentage: 90 },
   { skill: 'Teamwork', percentage: 85 },
   { skill: 'Problem Solving', percentage: 80 },
   { skill: 'Leadership', percentage: 75 },
 ];
 
-const INITIAL_FORM_DATA = {
+const SOFT_SKILL_EXAMPLES_BM: Skill[] = [
+  { skill: 'Rajin', percentage: 90 },
+  { skill: 'Kerjasama', percentage: 85 },
+  { skill: 'Berkomunikasi', percentage: 80 },
+  { skill: 'Kepimpinan', percentage: 75 },
+];
+
+const TECH_SKILL_PLACEHOLDERS = [
+  'Microsoft Word',
+  'Microsoft Excel',
+  'Microsoft PowerPoint',
+  'Microsoft Access',
+];
+
+const SOFT_SKILL_PLACEHOLDERS = [
+  'Hardworking / Rajin',
+  'Teamwork / Kerjasama',
+  'Communication / Berkomunikasi',
+  'Leadership / Kepimpinan',
+];
+
+const ABOUT_ME_EXAMPLES_EN = [
+  'Adaptable professional with strong cross-functional collaboration and structured planning skills. Comfortable in dynamic environments, communicating clearly and responding quickly. Focused on improving workflow efficiency, supporting team objectives, and maintaining reliable execution through practical solutions and consistent responsibility.',
+  'Versatile individual experienced in coordination and team environments, ensuring smooth daily operations. Skilled in problem-solving, planning, and communication across departments. Adapts to changing needs while focusing on efficiency, teamwork, and continuous improvement to support workplace performance.',
+  'Professional with strong interpersonal ability, working effectively in collaborative settings. Able to manage multiple tasks with accuracy and consistency. Supports clear communication between teams and adapts to changing priorities while maintaining focus on operational effectiveness and improvement.',
+  'Motivated individual with experience in coordination, planning, and task execution. Strong communication supports smooth interaction across functions. Adapts to shifting priorities while maintaining productivity and contributing to efficient, stable, and cooperative workplace operations.',
+  'Resourceful professional with a collaborative approach to work. Manages responsibilities with clarity while supporting team goals. Communicates effectively across departments, adapts to changing demands, and focuses on practical solutions that improve efficiency and workflow.',
+  'Capable individual with strong coordination and planning skills in team settings. Maintains clear communication and adapts to evolving needs while staying productive. Focused on problem-solving, efficiency, and contributing positively to overall organizational performance.',
+  'Dynamic professional experienced in structured environments requiring teamwork and coordination. Strong communication supports smooth collaboration. Adapts to change easily while maintaining efficiency and contributing to continuous improvement through practical and consistent performance.',
+  'Reliable and adaptable individual focused on teamwork, planning, and communication. Handles multitasking environments effectively while maintaining efficiency and consistency. Open to growth and contributes to better processes through practical involvement and steady support.',
+  'Experienced in collaborative environments with strong planning and communication skills. Adapts quickly to changing requirements while maintaining structured workflow support. Focused on improving efficiency and contributing to team and organizational success through proactive problem-solving.',
+  'Well-rounded professional with a collaborative mindset and strong coordination ability. Communicates effectively and adapts to changing work demands. Focused on workflow efficiency, team support, and maintaining a stable, productive working environment through consistent execution.',
+];
+
+const ABOUT_ME_EXAMPLES_BM = [
+  'Seorang yang mudah menyesuaikan diri dalam pelbagai situasi kerja, selesa bekerjasama dengan pasukan dan jabatan lain. Fokus kepada penyusunan kerja yang teratur, komunikasi jelas dan penyelesaian tugasan secara praktikal untuk memastikan aliran kerja lebih lancar.',
+  'Berkebolehan bekerja dalam suasana kerja yang berubah-ubah dengan pendekatan tenang dan tersusun. Gemar bekerjasama dalam pasukan, membantu menyelesaikan masalah harian kerja serta memastikan tugasan disiapkan dengan baik dan mengikut keperluan semasa.',
+  'Seorang individu yang senang bekerjasama dan boleh diharapkan dalam tugasan berkumpulan. Menitikberatkan komunikasi yang jelas, pengurusan kerja yang teratur dan sentiasa bersedia menyesuaikan diri dengan perubahan keutamaan kerja.',
+  'Mempunyai pendekatan kerja yang praktikal dan mudah disesuaikan dalam persekitaran berpasukan. Selesa mengurus beberapa tugasan pada masa yang sama sambil memastikan kerja berjalan lancar dan tersusun.',
+  'Berkebolehan menyelaras tugasan dengan baik dalam persekitaran kerja yang dinamik. Fokus kepada kerjasama pasukan, komunikasi yang mudah difahami dan penyelesaian masalah secara terus dan berkesan.',
+  'Seorang yang stabil dan mudah dibentuk dalam persekitaran kerja berbeza. Selesa membantu pasukan, menyesuaikan diri dengan tugasan baru dan memastikan kerja harian disiapkan dengan teratur dan konsisten.',
+  'Gemar bekerja dalam suasana yang memerlukan kerjasama dan koordinasi. Menjaga komunikasi yang baik antara rakan kerja serta memastikan setiap tugasan dilaksanakan dengan teratur dan efisien.',
+  'Individu yang fokus kepada kerja berpasukan dan penyusunan tugasan yang kemas. Mudah menyesuaikan diri dengan perubahan dan sentiasa mencari cara untuk melancarkan proses kerja harian.',
+  'Mempunyai sikap kerja yang fleksibel dan mudah bekerjasama dengan pelbagai pihak. Selesa dalam persekitaran kerja yang pantas dan berubah, sambil mengekalkan fokus pada hasil kerja yang tersusun.',
+  'Seorang yang boleh menyesuaikan diri dengan cepat dalam pelbagai situasi kerja. Menyokong kerja berpasukan melalui komunikasi yang jelas, penyusunan kerja yang baik dan pendekatan yang praktikal dalam menyelesaikan tugasan.',
+];
+
+const INITIAL_FORM_DATA: FormData = {
   name: '', address: '', email: '', telephone: '', linkedin: '', title: '',
-  about: '', image: null as File | null,
-  languages: [{ language: '', proficiency: 'beginner' }],
-  experiences: [{ company: '', title: '', location: '', duration: '', details: '' }],
-  education: { degree: '', institution: '', cgpa: '', duration: '' },
+  about: '', image: null,
+  hasExperience: null,
+  experiences: [{ company: '', title: '', duration: '', details: '' }],
+  additionalExperience: '',
   strength: '',
-  reference: { name: '', position: '', company: '', contact: '' },
+  education: [{ institution: '', qualification: '', duration: '', result: '' }],
+  additionalEducation: '',
   technicalSkills: [{ skill: '', percentage: 50 }],
   softSkills: [{ skill: '', percentage: 50 }],
+  references: [{ name: '', position: '', company: '', contact: '' }],
+  additionalReference: '',
+  languages: [{ language: '', proficiency: 'beginner' }],
   certifications: [''],
   achievements: [''],
   extracurricularActivities: [{ title: '', date: '', details: '' }],
-  location: '', language: 'English',
 };
 
-const INITIAL_OPTIONAL_FIELDS = {
-  linkedin: false, languages: false, certifications: false,
-  achievements: false, extracurricular: false, reference: false,
-};
+// ─── Component ────────────────────────────────────────────────────────────────
 
-const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplateRef, selectedLanguage }) => {
+const ResumeForm: React.FC<ResumeFormProps> = ({
+  selectedTemplateRef,
+  selectedLanguage,
+  resumeLanguage,
+  selectedPages,
+  onPagesChange,
+}) => {
   const t = useMemo(() => translations[selectedLanguage].form, [selectedLanguage]);
+  const tc = useMemo(() => translations[selectedLanguage].templateCarousel, [selectedLanguage]);
+
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [showReview, setShowReview] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [showOptionalFields, setShowOptionalFields] = useState(INITIAL_OPTIONAL_FIELDS);
-  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+  const [showLinkedIn, setShowLinkedIn] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [expandedAdditional, setExpandedAdditional] = useState({
+    languages: false, certifications: false, achievements: false, activities: false,
+  });
 
-  const handleInputChange = useCallback((field: string, value: any) => {
+  // Additional section visibility states
+  const [showAdditionalExperience, setShowAdditionalExperience] = useState(false);
+  const [showAdditionalEducation, setShowAdditionalEducation] = useState(false);
+  const [showAdditionalReference, setShowAdditionalReference] = useState(false);
+
+  // Reference toggle: true = Reference Included, false = Available Upon Request
+  const [referenceIncluded, setReferenceIncluded] = useState(true);
+
+  // Post-submit upsell + processing screens
+  const [showUpsell, setShowUpsell] = useState(false);
+  const [showProcessing, setShowProcessing] = useState(false);
+  const [checkedSteps, setCheckedSteps] = useState(0);
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const aboutMeIndex = useRef(0);
+
+  const LOADING_MESSAGES = [
+    "Teaching AI to use a pen... it prefers keyboards 🤖",
+    "Bribing the printer with virtual coffee ☕",
+    "Alphabetizing your achievements... in Klingon 🖖",
+    "Polishing your buzzwords until they shine ✨",
+    "Convincing your skills they belong on paper 📄",
+    "Hiring tiny elves to typeset your resume 🧝",
+    "Running spell-check on your life choices 🔍",
+    "Asking ChatGPT nicely to step aside 😤",
+    "Sprinkling magic dust on your work history 🪄",
+    "Negotiating with fonts for the best deal 🔤",
+    "Making your experience sound fancier than it is 💼",
+    "Adding 'proficient in MS Office' for the 100th time 😅",
+    "Generating your future boss's first impression 👔",
+    "Warming up the PDF machine 🖨️",
+    "Your resume is almost ready to conquer the world 🌍",
+  ];
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+  const loadingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isSubmitting) {
+      setLoadingMsgIndex(0);
+      loadingIntervalRef.current = setInterval(() => {
+        setLoadingMsgIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
+      }, 3000);
+    } else {
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+        loadingIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
+    };
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    if (showProcessing) {
+      setCheckedSteps(0);
+      let step = 0;
+      checkIntervalRef.current = setInterval(() => {
+        step += 1;
+        setCheckedSteps(step);
+        if (step >= 6) {
+          if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+        }
+      }, 800);
+    } else {
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+    };
+  }, [showProcessing]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const setField = useCallback(<K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleNestedInputChange = useCallback((section: string, field: string, value: any) => {
+  const handleArrayChange = useCallback((section: keyof FormData, index: number, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: { ...(prev[section as keyof FormData] as any), [field]: value },
-    }));
-  }, []);
-
-  const handleArrayInputChange = useCallback((section: string, index: number, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: (prev[section as keyof FormData] as any[]).map((item, i) =>
+      [section]: (prev[section] as any[]).map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       ),
     }));
   }, []);
 
-  const handleSimpleArrayChange = useCallback((section: string, index: number, value: string) => {
+  const handleSimpleArrayChange = useCallback((section: keyof FormData, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [section]: (prev[section as keyof FormData] as string[]).map((item, i) =>
-        i === index ? value : item
-      ),
+      [section]: (prev[section] as string[]).map((item, i) => i === index ? value : item),
     }));
   }, []);
 
-  const addArrayItem = useCallback((section: string, defaultItem: any) => {
+  const addItem = useCallback((section: keyof FormData, defaultItem: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: [...(prev[section as keyof FormData] as any[]), defaultItem],
+      [section]: [...(prev[section] as any[]), defaultItem],
     }));
   }, []);
 
-  const removeArrayItem = useCallback((section: string, index: number) => {
+  const removeItem = useCallback((section: keyof FormData, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [section]: (prev[section as keyof FormData] as any[]).filter((_, i) => i !== index),
+      [section]: (prev[section] as any[]).filter((_, i) => i !== index),
     }));
   }, []);
 
   const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setFormData(prev => ({ ...prev, image: e.target.files![0] }));
-    }
-  }, []);
+    if (e.target.files?.[0]) setField('image', e.target.files[0]);
+  }, [setField]);
 
-  const formatSubmissionData = (imageUrl: string) => {
-    // Format languages as array of objects: [{"English": "professional"}, ...]
-    const formatLanguages = () => {
-      return formData.languages
-        .filter(lang => lang.language.trim())
-        .map(lang => ({ [lang.language]: lang.proficiency }));
-    };
+  const autofillAboutMe = useCallback(() => {
+    const lang = resumeLanguage ?? selectedLanguage;
+    const examples = lang === 'English' ? ABOUT_ME_EXAMPLES_EN : ABOUT_ME_EXAMPLES_BM;
+    setField('about', examples[aboutMeIndex.current % examples.length]);
+    aboutMeIndex.current = (aboutMeIndex.current + 1) % examples.length;
+  }, [resumeLanguage, selectedLanguage, setField]);
 
-    // Format experiences as array of objects
-    const formatExperiences = () => {
-      return formData.experiences
-        .filter(exp => exp.company.trim() || exp.title.trim())
-        .map(exp => ({
-          company: exp.company,
-          title: exp.title,
-          location: exp.location,
-          duration: exp.duration,
-          details: exp.details.split('\n').filter(d => d.trim())
-        }));
-    };
+  const autofillTechnicalSkills = useCallback(() => {
+    setField('technicalSkills', TECH_SKILL_EXAMPLES);
+  }, [setField]);
 
-    // Format skills as nested object: { "technical skills": { "AutoCAD": 30 }, "soft skills": { "Leadership": 20 } }
-    const formatSkills = () => {
-      const technicalSkills: Record<string, number> = {};
-      const softSkills: Record<string, number> = {};
-
-      formData.technicalSkills
-        .filter(skill => skill.skill.trim())
-        .forEach(skill => {
-          technicalSkills[skill.skill] = skill.percentage;
-        });
-
-      formData.softSkills
-        .filter(skill => skill.skill.trim())
-        .forEach(skill => {
-          softSkills[skill.skill] = skill.percentage;
-        });
-
-      return {
-        "technical skills": technicalSkills,
-        "soft skills": softSkills
-      };
-    };
-
-    // Format certifications as array of objects
-    const formatCertifications = () => {
-      return formData.certifications
-        .filter(cert => cert.trim())
-        .map(cert => ({
-          title: cert,
-          issuer: "",
-          date: ""
-        }));
-    };
-
-    // Format education as array of objects
-    const formatEducation = () => {
-      if (!formData.education.degree && !formData.education.institution) {
-        return [];
-      }
-      return [{
-        level: formData.education.degree,
-        institution: formData.education.institution,
-        duration: formData.education.duration,
-        grade: formData.education.cgpa
-      }];
-    };
-
-    // Format reference as array of objects
-    const formatReference = () => {
-      if (!formData.reference.name) {
-        return [];
-      }
-      return [{
-        name: formData.reference.name,
-        position: formData.reference.position,
-        company: formData.reference.company,
-        email: "",
-        telephone: formData.reference.contact
-      }];
-    };
-
-    // Format extracurricular activities as array of objects
-    const formatExtracurricular = () => {
-      return formData.extracurricularActivities
-        .filter(activity => activity.title.trim())
-        .map(activity => ({
-          title: activity.title,
-          date: activity.date,
-          details: activity.details
-        }));
-    };
-
-    // Format strength as array of strings
-    const formatStrength = () => {
-      return formData.strength
-        .split('\n')
-        .map(s => s.trim())
-        .filter(s => s);
-    };
-
-    // Format achievements as array of strings
-    const formatAchievements = () => {
-      return formData.achievements.filter(a => a.trim());
-    };
-
-    // Count number of valid job experiences
-    const numberOfJobs = formData.experiences.filter(
-      exp => exp.company.trim() || exp.title.trim()
-    ).length;
-
-    // Build the final submission object matching the expected JSON structure
-    return {
-      language: selectedLanguage,
-      template: selectedTemplateRef.current,
-      resume: {
-        id: String(Math.floor(Math.random() * 10000)),
-        name: formData.name,
-        title: formData.title,
-        image: imageUrl,
-        adress: formData.address, // Note: keeping the original typo from the spec
-        email: formData.email,
-        telephone: formData.telephone,
-        linkedin: formData.linkedin,
-        about: formData.about,
-        language: formatLanguages(),
-        experience: formatExperiences(),
-        "number of jobs": numberOfJobs,
-        education: formatEducation(),
-        strength: formatStrength(),
-        reference: formatReference(),
-        skills: formatSkills(),
-        certification: formatCertifications(),
-        achievement: formatAchievements(),
-        "extracurricular activities": formatExtracurricular()
-      }
-    };
-  };
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowReview(true);
-  }, []);
-
-  const handleFinalSubmit = async () => {
-    setIsSubmitting(true);
-    setSubmitError('');
-    setJobStatus(null);
-
-    try {
-      let imageUrl = '';
-      if (formData.image) {
-        const uploadResponse = await uploadImage(formData.image, formData.telephone);
-        imageUrl = uploadResponse.image_url;
-      }
-
-      // POST returns instantly with a job_id — no long wait here.
-      const { job_id } = await submitResume(formatSubmissionData(imageUrl));
-      setJobStatus('pending');
-
-      // Poll every 3 s until the job finishes.
-      const poll = async () => {
-        try {
-          const status = await getResumeStatus(job_id);
-          setJobStatus(status.status);
-
-          if (status.status === 'done') {
-            setSubmitDone(true);
-            setIsSubmitting(false);
-          } else if (status.status === 'failed') {
-            setSubmitError(status.error || 'Resume generation failed. Please try again.');
-            setIsSubmitting(false);
-          } else {
-            setTimeout(poll, 3000);
-          }
-        } catch (err) {
-          setSubmitError(err instanceof Error ? err.message : 'Lost connection. Please try again.');
-          setIsSubmitting(false);
-        }
-      };
-
-      setTimeout(poll, 3000);
-    } catch (error) {
-      console.error('Submission error:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Unknown error');
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleOptionalField = useCallback((field: keyof typeof showOptionalFields) => {
-    setShowOptionalFields(prev => ({ ...prev, [field]: !prev[field] }));
-  }, []);
+  const autofillSoftSkills = useCallback(() => {
+    const lang = resumeLanguage ?? selectedLanguage;
+    setField('softSkills', lang === 'English' ? SOFT_SKILL_EXAMPLES_EN : SOFT_SKILL_EXAMPLES_BM);
+  }, [resumeLanguage, selectedLanguage, setField]);
 
   const autofillWithAI = async () => {
-    if (!formData.title.trim()) {
-      alert(t.enterJobTitle);
-      return;
-    }
-
+    if (!formData.title.trim()) { alert(t.enterJobTitle); return; }
     setIsGeneratingAI(true);
     try {
-      const profile = await generateJobProfile(formData.title, selectedLanguage);
-      
+      const lang = resumeLanguage ?? selectedLanguage;
+      const profile = await generateJobProfile(formData.title, lang);
       setFormData(prev => ({
         ...prev,
         about: profile.aboutMe,
         technicalSkills: profile.technicalSkills,
         softSkills: profile.softSkills,
-        strength: profile.strengths
+        strength: profile.strengths,
       }));
     } catch (error) {
       console.error('AI generation error:', error);
@@ -396,1166 +357,1239 @@ const ResumeForm: React.FC<ResumeFormProps> = ({ selectedTemplateRef, selectedLa
     }
   };
 
-  const autofillSkills = useCallback(() => {
-    setFormData(prev => ({
-      ...prev,
-      technicalSkills: COMMON_TECHNICAL_SKILLS,
-      softSkills: COMMON_SOFT_SKILLS,
-    }));
-  }, []);
-
-  const autofillAboutMe = useCallback(() => {
-    setFormData(prev => ({ ...prev, about: t.aboutMePlaceholder }));
-  }, [t]);
-
-  const getSkillLevel = useCallback((percentage: number): string => {
-    if (percentage <= 25) return t.skillLevelBeginner;
-    if (percentage <= 50) return t.skillLevelIntermediate;
-    if (percentage <= 75) return t.skillLevelAdvanced;
+  const getSkillLevel = useCallback((pct: number) => {
+    if (pct <= 25) return t.skillLevelBeginner;
+    if (pct <= 50) return t.skillLevelIntermediate;
+    if (pct <= 75) return t.skillLevelAdvanced;
     return t.skillLevelExpert;
   }, [t]);
 
-  const getSkillLevelColor = useCallback((percentage: number): string => {
-    if (percentage <= 25) return 'text-blue-600 dark:text-blue-400';
-    if (percentage <= 50) return 'text-green-600 dark:text-green-400';
-    if (percentage <= 75) return 'text-orange-600 dark:text-orange-400';
+  const getSkillLevelColor = useCallback((pct: number) => {
+    if (pct <= 25) return 'text-blue-600 dark:text-blue-400';
+    if (pct <= 50) return 'text-green-600 dark:text-green-400';
+    if (pct <= 75) return 'text-orange-600 dark:text-orange-400';
     return 'text-purple-600 dark:text-purple-400';
   }, []);
 
   const resetForm = useCallback(() => {
     if (window.confirm(t.resetConfirm)) {
-      setFormData(INITIAL_FORM_DATA);
-      setShowOptionalFields(INITIAL_OPTIONAL_FIELDS);
+      setFormData({ ...INITIAL_FORM_DATA });
+      setShowLinkedIn(false);
+      setShowAdditionalDetails(false);
+      setExpandedAdditional({ languages: false, certifications: false, achievements: false, activities: false });
+      setShowAdditionalExperience(false);
+      setShowAdditionalEducation(false);
+      setShowAdditionalReference(false);
+      setReferenceIncluded(true);
+      setShowUpsell(false);
+      setShowProcessing(false);
+      setCheckedSteps(0);
     }
   }, [t]);
 
   const getTemplateName = useMemo(() => {
     const id = selectedTemplateRef.current;
-    const template = TEMPLATE_NAMES[id] || { en: `Template ${id}`, bm: `Templat ${id}` };
-    return selectedLanguage === 'English' ? template.en : template.bm;
+    if (!id) return selectedLanguage === 'English' ? 'No template selected' : 'Tiada templat dipilih';
+    const tmpl = TEMPLATE_NAMES[id] || { en: `Template ${id}`, bm: `Templat ${id}` };
+    return selectedLanguage === 'English' ? tmpl.en : tmpl.bm;
   }, [selectedLanguage, selectedTemplateRef]);
 
+  const resumeLanguageLabel = useMemo(() => {
+    if (!resumeLanguage) return '';
+    return resumeLanguage === 'English' ? '( English )' : '( Bahasa Malaysia )';
+  }, [resumeLanguage]);
+
+  // ── Add Experience handler ──────────────────────────────────────────────────
+  const handleAddExperience = useCallback(() => {
+    if (formData.experiences.length < 3) {
+      addItem('experiences', { company: '', title: '', duration: '', details: '' });
+    } else {
+      setShowAdditionalExperience(true);
+    }
+  }, [formData.experiences.length, addItem]);
+
+  const handleDeleteAdditionalExperience = useCallback(() => {
+    setShowAdditionalExperience(false);
+    setField('additionalExperience', '');
+  }, [setField]);
+
+  // ── Add Education handler ───────────────────────────────────────────────────
+  const handleAddEducation = useCallback(() => {
+    if (formData.education.length < 3) {
+      addItem('education', { institution: '', qualification: '', duration: '', result: '' });
+    } else {
+      setShowAdditionalEducation(true);
+    }
+  }, [formData.education.length, addItem]);
+
+  const handleDeleteAdditionalEducation = useCallback(() => {
+    setShowAdditionalEducation(false);
+    setField('additionalEducation', '');
+  }, [setField]);
+
+  // ── Add Reference handler ───────────────────────────────────────────────────
+  const handleAddReference = useCallback(() => {
+    if (formData.references.length < 2) {
+      addItem('references', { name: '', position: '', company: '', contact: '' });
+    } else {
+      setShowAdditionalReference(true);
+    }
+  }, [formData.references.length, addItem]);
+
+  const handleDeleteAdditionalReference = useCallback(() => {
+    setShowAdditionalReference(false);
+    setField('additionalReference', '');
+  }, [setField]);
+
+  // ── Submission ──────────────────────────────────────────────────────────────
+
+  const formatSubmissionData = (imageUrl: string) => {
+    const effectiveLang = resumeLanguage ?? selectedLanguage;
+
+    const formatLanguages = () =>
+      formData.languages.filter(l => l.language.trim()).map(l => ({ [l.language]: l.proficiency }));
+
+    const formatExperiences = () => {
+      if (formData.hasExperience === false) return [];
+      const exps = formData.experiences
+        .filter(e => e.company.trim() || e.title.trim())
+        .map(e => ({
+          company: e.company,
+          title: e.title,
+          location: '',
+          duration: e.duration,
+          details: e.details.split('\n').filter(d => d.trim()),
+        }));
+      if (formData.additionalExperience.trim()) {
+        exps.push({
+          company: effectiveLang === 'English' ? 'Additional Experience' : 'Pengalaman Tambahan',
+          title: '',
+          location: '',
+          duration: '',
+          details: [formData.additionalExperience.trim()],
+        });
+      }
+      return exps;
+    };
+
+    const formatEducation = () => {
+      const entries = formData.education
+        .filter(e => e.institution.trim() || e.qualification.trim())
+        .map(e => ({
+          level: e.qualification,
+          institution: e.institution,
+          duration: e.duration,
+          grade: e.result,
+        }));
+      if (formData.additionalEducation.trim()) {
+        entries.push({
+          level: effectiveLang === 'English' ? 'Additional Education' : 'Pendidikan Tambahan',
+          institution: formData.additionalEducation.trim(),
+          duration: '',
+          grade: '',
+        });
+      }
+      return entries;
+    };
+
+    const formatSkills = () => {
+      const tech: Record<string, number> = {};
+      const soft: Record<string, number> = {};
+      formData.technicalSkills.filter(s => s.skill.trim()).forEach(s => { tech[s.skill] = s.percentage; });
+      formData.softSkills.filter(s => s.skill.trim()).forEach(s => { soft[s.skill] = s.percentage; });
+      return { 'technical skills': tech, 'soft skills': soft };
+    };
+
+    const formatCertifications = () =>
+      formData.certifications.filter(c => c.trim()).map(c => ({ title: c, issuer: '', date: '' }));
+
+    const formatAchievements = () => formData.achievements.filter(a => a.trim());
+
+    const formatExtracurricular = () =>
+      formData.extracurricularActivities.filter(a => a.title.trim()).map(a => ({
+        title: a.title, date: a.date, details: a.details,
+      }));
+
+    const formatReference = () => {
+      if (!referenceIncluded) {
+        return [{ name: effectiveLang === 'English' ? 'References available upon request' : 'Rujukan disediakan atas permintaan', position: '', company: '', email: '', telephone: '' }];
+      }
+      const hasReferenceData = formData.references.some(r => r.name.trim());
+      if (!hasReferenceData) return [];
+      const refs = formData.references.filter(r => r.name.trim()).map(r => ({
+        name: r.name, position: r.position, company: r.company, email: '', telephone: r.contact,
+      }));
+      if (formData.additionalReference.trim()) {
+        refs.push({
+          name: effectiveLang === 'English' ? 'Additional Reference' : 'Rujukan Tambahan',
+          position: '', company: '', email: '', telephone: formData.additionalReference.trim(),
+        });
+      }
+      return refs;
+    };
+
+    const formatStrength = () =>
+      formData.strength.split('\n').map(s => s.trim()).filter(Boolean);
+
+    const experiences = formatExperiences();
+
+    return {
+      language: effectiveLang,
+      template: selectedTemplateRef.current,
+      resume: {
+        id: String(Math.floor(Math.random() * 10000)),
+        name: formData.name,
+        title: formData.title,
+        image: imageUrl,
+        adress: formData.address,
+        email: formData.email,
+        telephone: formData.telephone,
+        linkedin: formData.linkedin,
+        about: formData.about,
+        language: formatLanguages(),
+        experience: experiences,
+        'number of jobs': experiences.length,
+        education: formatEducation(),
+        strength: formatStrength(),
+        reference: formatReference(),
+        skills: formatSkills(),
+        certification: formatCertifications(),
+        achievement: formatAchievements(),
+        'extracurricular activities': formatExtracurricular(),
+      },
+    };
+  };
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTemplateRef.current) {
+      alert(t.pleaseChooseTemplate);
+      return;
+    }
+    if (!resumeLanguage) {
+      alert(t.pleaseChooseLanguage);
+      return;
+    }
+    setShowReview(true);
+  }, [selectedTemplateRef, resumeLanguage, t]);
+
+  const logResumeToSheet = useCallback((resumeLink: string = '') => {
+    const sessionId = sessionStorage.getItem('templite_session_id');
+    if (!sessionId) return;
+    fetch('/api/log-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_resume',
+        sessionId,
+        name: formData.name,
+        email: formData.email,
+        jobTitle: formData.title,
+        template: selectedTemplateRef.current,
+        pages: selectedPages,
+        resumeLink,
+      }),
+    }).catch(() => {});
+  }, [formData.name, formData.email, formData.title, selectedTemplateRef, selectedPages]);
+
+  const handleFinalSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError('');
+    setJobStatus(null);
+    setShowUpsell(true);
+    setShowProcessing(false);
+    setCheckedSteps(0);
+    try {
+      let imageUrl = '';
+      if (formData.image) {
+        const up = await uploadImage(formData.image, formData.telephone);
+        imageUrl = up.image_url;
+      }
+      const { job_id } = await submitResume(formatSubmissionData(imageUrl));
+      setJobStatus('pending');
+      const poll = async () => {
+        try {
+          const status = await getResumeStatus(job_id);
+          setJobStatus(status.status);
+          if (status.status === 'done') {
+            setSubmitDone(true);
+            setIsSubmitting(false);
+            logResumeToSheet(status.drive_url || '');
+          } else if (status.status === 'failed') {
+            setSubmitError(status.error || 'Resume generation failed. Please try again.');
+            setIsSubmitting(false);
+            setShowUpsell(false);
+            setShowProcessing(false);
+          } else {
+            setTimeout(poll, 3000);
+          }
+        } catch (err) {
+          setSubmitError(err instanceof Error ? err.message : 'Lost connection. Please try again.');
+          setIsSubmitting(false);
+          setShowUpsell(false);
+          setShowProcessing(false);
+        }
+      };
+      setTimeout(poll, 3000);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unknown error');
+      setIsSubmitting(false);
+      setShowUpsell(false);
+      setShowProcessing(false);
+    }
+  };
+
+  // ── Shared UI helpers ────────────────────────────────────────────────────────
+
+  const inputCls = 'w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+  const cardCls = 'bg-yellow-50 dark:bg-yellow-900/20 p-4 sm:p-6 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800';
+  const sectionBorderCls = 'border-b border-gray-200 dark:border-gray-700 pb-8';
+  const sectionHeadingCls = 'text-lg sm:text-2xl font-semibold text-gray-900 dark:text-white';
+  const deleteBtnCls = 'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium shrink-0';
+  const addBtnCls = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 sm:px-4 rounded-lg transition-colors flex items-center shadow-md text-sm shrink-0';
+
+  const SkillRow = ({ section, index, skills }: {
+    section: 'technicalSkills' | 'softSkills';
+    index: number;
+    skills: Skill[];
+  }) => {
+    const placeholderList = section === 'technicalSkills' ? TECH_SKILL_PLACEHOLDERS : SOFT_SKILL_PLACEHOLDERS;
+    const fallback = section === 'technicalSkills'
+      ? 'Technical Skill / Kemahiran Teknikal'
+      : 'Soft Skill / Kemahiran Insaniah';
+    const placeholder = placeholderList[index] ?? fallback;
+
+    return (
+      <div className={cardCls.replace('mb-4', '')}>
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="text"
+            placeholder={placeholder}
+            value={skills[index].skill}
+            onChange={e => handleArrayChange(section, index, 'skill', e.target.value)}
+            className={inputCls + ' text-sm flex-1'}
+          />
+          {skills.length > 1 && (
+            <button type="button" onClick={() => removeItem(section, index)} className={deleteBtnCls}>
+              {t.delete}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min="0" max="100"
+            value={skills[index].percentage}
+            onChange={e => handleArrayChange(section, index, 'percentage', parseInt(e.target.value))}
+            className="flex-1 accent-yellow-500 cursor-pointer"
+          />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-8 text-right">{skills[index].percentage}%</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getSkillLevelColor(skills[index].percentage)}`}>
+              {getSkillLevel(skills[index].percentage)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const hasTemplate = !!selectedTemplateRef.current;
+  const hasResumeLanguage = !!resumeLanguage;
+
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-yellow-200 dark:border-gray-700">
+    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-8 border border-yellow-200 dark:border-gray-700">
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Selected Template Display */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mr-4">
-                <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplateRef.current}</span>
+
+        {/* ── Selected Template + Number of Pages ── */}
+        <section className={sectionBorderCls}>
+          {!hasTemplate || !hasResumeLanguage ? (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg text-center text-sm text-yellow-800 dark:text-yellow-300">
+              {selectedLanguage === 'English'
+                ? '⚠ Please choose a template and resume language above to get started.'
+                : '⚠ Sila pilih templat dan bahasa resume di atas untuk bermula.'}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mr-4 shrink-0">
+                  <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplateRef.current}</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {selectedLanguage === 'English' ? 'Selected Template' : 'Templat Dipilih'}
+                  </p>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                    {getTemplateName}
+                    {resumeLanguageLabel && (
+                      <span className="ml-2 text-yellow-600 dark:text-yellow-400 font-medium">{resumeLanguageLabel}</span>
+                    )}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedLanguage === 'English' ? 'Selected Template' : 'Templat Dipilih'}
-                </p>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{getTemplateName}</h3>
+              <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
+                ✓ {selectedLanguage === 'English' ? 'Selected' : 'Dipilih'}
               </div>
             </div>
-            <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
-              ✓ {selectedLanguage === 'English' ? 'Selected' : 'Dipilih'}
+          )}
+
+          {/* Number of Pages */}
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <Hash className="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
+              <span className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{tc.numberOfPages}</span>
+            </div>
+            <div className="flex gap-2">
+              {(['1', '2', '3+'] as const).map(p => (
+                <button
+                  key={p} type="button" onClick={() => onPagesChange(p)}
+                  className={`w-10 h-10 rounded-lg font-semibold text-sm transition-colors ${
+                    selectedPages === p
+                      ? 'bg-yellow-500 text-white shadow-md'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/30'
+                  }`}
+                >{p}</button>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Basic Information */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
+        {/* ── Basic Information ── */}
+        <section className={sectionBorderCls}>
           <div className="flex items-center mb-6">
-            <User className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.basicInformation}</h2>
+            <User className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+            <h2 className={sectionHeadingCls}>{t.basicInformation}</h2>
           </div>
-          
+
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.fullName} *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <input type="text" required value={formData.name}
+                onChange={e => setField('name', e.target.value)} className={inputCls} />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t.jobTitleOptional}
-                <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">
-                  ✨ {selectedLanguage === 'English' ? 'AI-powered autofill available' : 'Isi automatik dengan AI tersedia'}
-                </span>
+                <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">✨ {selectedLanguage === 'English' ? 'AI autofill available' : 'Isi automatik AI tersedia'}</span>
               </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t.jobTitleExample}
-              />
+              <input type="text" value={formData.title}
+                onChange={e => setField('title', e.target.value)}
+                placeholder={t.jobTitleExample} className={inputCls} />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.email} *</label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <input type="email" required value={formData.email}
+                onChange={e => setField('email', e.target.value)} className={inputCls} />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.phoneNumber} *</label>
-              <input
-                type="tel"
-                required
-                value={formData.telephone}
-                onChange={(e) => handleInputChange('telephone', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <input type="tel" required value={formData.telephone}
+                onChange={e => setField('telephone', e.target.value)} className={inputCls} />
             </div>
-            
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.address} *</label>
-              <input
-                type="text"
-                required
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <input type="text" required value={formData.address}
+                onChange={e => setField('address', e.target.value)} className={inputCls} />
             </div>
-            
+
+            {/* LinkedIn optional */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.locationOptional}</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t.locationExample}
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <button
-                type="button"
-                onClick={() => toggleOptionalField('linkedin')}
-                className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between mb-2"
-              >
+              <button type="button" onClick={() => setShowLinkedIn(v => !v)}
+                className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.addLinkedIn}</span>
-                {showOptionalFields.linkedin ? (
-                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                )}
+                {showLinkedIn ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
               </button>
-              {showOptionalFields.linkedin && (
-                <input
-                  type="text"
-                  value={formData.linkedin}
-                  onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder={t.linkedInPlaceholder}
-                />
+              {showLinkedIn && (
+                <input type="text" value={formData.linkedin}
+                  onChange={e => setField('linkedin', e.target.value)}
+                  placeholder={t.linkedInPlaceholder} className={inputCls} />
               )}
             </div>
-            
+
+            {/* Profile image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.profileImage}</label>
-              <div className="flex items-center space-x-4">
-                <label className="cursor-pointer bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg transition-colors flex items-center border border-yellow-200">
-                  <Upload className="w-4 h-4 mr-2" />
-                  {t.chooseFile}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-                {formData.image && (
-                  <span className="text-sm text-gray-600">{formData.image.name}</span>
-                )}
-              </div>
+              <label className="cursor-pointer bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg transition-colors flex items-center border border-yellow-200 w-fit">
+                <Upload className="w-4 h-4 mr-2" />
+                {t.chooseFile}
+                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              </label>
+              {formData.image && <p className="text-xs text-gray-500 mt-1">{formData.image.name}</p>}
             </div>
-            
+
+            {/* About Me */}
             <div className="md:col-span-2">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.aboutMe}</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={autofillWithAI}
-                    disabled={isGeneratingAI}
-                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isGeneratingAI ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
-                        {t.generatingWithAI}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3 h-3" />
-                        {t.autoFillWithAI}
-                      </>
-                    )}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={autofillWithAI} disabled={isGeneratingAI}
+                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50">
+                    {isGeneratingAI ? <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    {isGeneratingAI ? t.generatingWithAI : t.autoFillWithAI}
                   </button>
-                  <button
-                    type="button"
-                    onClick={autofillAboutMe}
-                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors"
-                  >
-                    {t.autoFillExample}
+                  <button type="button" onClick={autofillAboutMe}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors">
+                    {t.autoFill}
                   </button>
                 </div>
               </div>
-              <textarea
-                value={formData.about}
-                onChange={(e) => handleInputChange('about', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t.aboutMePlaceholder}
-              />
+              <textarea value={formData.about} onChange={e => setField('about', e.target.value)}
+                rows={4} placeholder={t.aboutMePlaceholder} className={inputCls} />
             </div>
           </div>
         </section>
 
-        {/* Work Experience */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="flex items-center justify-between mb-6">
+        {/* ── Work Experience ── */}
+        <section className={sectionBorderCls}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div className="flex items-center">
-              <Briefcase className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.workExperience}</h2>
+              <Briefcase className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+              <h2 className={sectionHeadingCls}>{t.workExperience}</h2>
             </div>
-            {formData.experiences.length < 3 && (
-              <button
-                type="button"
-                onClick={() => addArrayItem('experiences', { company: '', title: '', location: '', duration: '', details: '' })}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {t.addExperience}
-              </button>
-            )}
           </div>
-          
-          {formData.experiences.length === 0 || (formData.experiences.length === 1 && !formData.experiences[0].company.trim()) ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p>{t.noExperience}</p>
-            </div>
-          ) : null}
-          
-          {formData.experiences.map((exp, index) => (
-            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t.experience} {index + 1}</h3>
-                {formData.experiences.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('experiences', index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    {t.delete}
-                  </button>
-                )}
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <input
-                  type="text"
-                  placeholder={t.companyName}
-                  value={exp.company}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'company', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.jobTitlePlaceholder}
-                  value={exp.title}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'title', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.locationPlaceholder}
-                  value={exp.location}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'location', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.durationPlaceholder}
-                  value={exp.duration}
-                  onChange={(e) => handleArrayInputChange('experiences', index, 'duration', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-              
-              <textarea
-                placeholder={t.jobDetails}
-                value={exp.details}
-                onChange={(e) => handleArrayInputChange('experiences', index, 'details', e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-          ))}
-        </section>
 
-        {/* Education */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="flex items-center mb-6">
-            <GraduationCap className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.education}</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <input
-              type="text"
-              placeholder={t.degreePlaceholder}
-              value={formData.education.degree}
-              onChange={(e) => handleNestedInputChange('education', 'degree', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            <input
-              type="text"
-              placeholder={t.institutionPlaceholder}
-              value={formData.education.institution}
-              onChange={(e) => handleNestedInputChange('education', 'institution', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            <input
-              type="text"
-              placeholder={t.educationDurationPlaceholder}
-              value={formData.education.duration}
-              onChange={(e) => handleNestedInputChange('education', 'duration', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            <input
-              type="text"
-              placeholder={t.cgpaPlaceholder}
-              value={formData.education.cgpa}
-              onChange={(e) => handleNestedInputChange('education', 'cgpa', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
-        </section>
-
-        {/* Strength */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="flex items-center mb-6">
-            <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.strengths}</h2>
-          </div>
-          
-          <textarea
-            value={formData.strength}
-            onChange={(e) => handleInputChange('strength', e.target.value)}
-            rows={4}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            placeholder={t.strengthsPlaceholder}
-          />
-        </section>
-
-        {/* Technical Skills */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Code className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.technicalSkills}</h2>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={autofillWithAI}
-                disabled={isGeneratingAI}
-                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3 h-3" />
-                    {t.autoFillWithAI}
-                  </>
-                )}
+          {/* Toggle: No Experience / With Experience */}
+          {formData.hasExperience === null && (
+            <div className="flex justify-center gap-4">
+              <button type="button" onClick={() => setField('hasExperience', false)}
+                className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors shadow-md">
+                {t.noExperienceBtn}
               </button>
-              <button
-                type="button"
-                onClick={autofillSkills}
-                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
-              >
-                {t.autoFillExamples}
+              <button type="button" onClick={() => setField('hasExperience', true)}
+                className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors shadow-md">
+                {t.withExperienceBtn}
               </button>
-              {formData.technicalSkills.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('technicalSkills', { skill: '', percentage: 50 })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addSkill}
-                </button>
-              )}
             </div>
-          </div>
-          
-          <div className="space-y-4">
-          {formData.technicalSkills.map((skill, index) => (
-            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <div className="flex items-center space-x-4 mb-2">
-                <input
-                  type="text"
-                  placeholder={t.technicalSkillsPlaceholder}
-                  value={skill.skill}
-                  onChange={(e) => handleArrayInputChange('technicalSkills', index, 'skill', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                {formData.technicalSkills.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('technicalSkills', index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
-                  >
-                    {t.delete}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={skill.percentage}
-                  onChange={(e) => handleArrayInputChange('technicalSkills', index, 'percentage', parseInt(e.target.value))}
-                  className="flex-1 accent-yellow-500 cursor-pointer"
-                />
-                <div className="flex items-center space-x-2 min-w-[140px]">
-                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-right">{skill.percentage}%</span>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getSkillLevelColor(skill.percentage)} bg-opacity-10`}>
-                    {getSkillLevel(skill.percentage)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-          </div>
-        </section>
-
-        {/* Soft Skills */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Heart className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.softSkills}</h2>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={autofillWithAI}
-                disabled={isGeneratingAI}
-                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3 h-3" />
-                    {t.autoFillWithAI}
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={autofillSkills}
-                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors"
-              >
-                {t.autoFillExamples}
-              </button>
-              {formData.softSkills.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('softSkills', { skill: '', percentage: 50 })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addSkill}
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-          {formData.softSkills.map((skill, index) => (
-            <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <div className="flex items-center space-x-4 mb-2">
-                <input
-                  type="text"
-                  placeholder={t.softSkillsPlaceholder}
-                  value={skill.skill}
-                  onChange={(e) => handleArrayInputChange('softSkills', index, 'skill', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                {formData.softSkills.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('softSkills', index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium"
-                  >
-                    {t.delete}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={skill.percentage}
-                  onChange={(e) => handleArrayInputChange('softSkills', index, 'percentage', parseInt(e.target.value))}
-                  className="flex-1 accent-yellow-500 cursor-pointer"
-                />
-                <div className="flex items-center space-x-2 min-w-[140px]">
-                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-10 text-right">{skill.percentage}%</span>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getSkillLevelColor(skill.percentage)} bg-opacity-10`}>
-                    {getSkillLevel(skill.percentage)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-          </div>
-        </section>
-
-        {/* Language Proficiency */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => toggleOptionalField('languages')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Target className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.languageProficiency}</h2>
-              </div>
-              {showOptionalFields.languages ? (
-                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-          </div>
-          
-          {showOptionalFields.languages && (
-            <>
-              <div className="flex justify-end mb-4">
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('languages', { language: '', proficiency: 'beginner' })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addLanguage}
-                </button>
-              </div>
-              
-              {formData.languages.map((lang, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <input
-                    type="text"
-                    placeholder={t.languagePlaceholder}
-                    value={lang.language}
-                    onChange={(e) => handleArrayInputChange('languages', index, 'language', e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  <select
-                    value={lang.proficiency}
-                    onChange={(e) => handleArrayInputChange('languages', index, 'proficiency', e.target.value)}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="beginner">{t.beginner}</option>
-                    <option value="intermediate">{t.intermediate}</option>
-                    <option value="professional">{t.professional}</option>
-                    <option value="native">{t.native}</option>
-                  </select>
-                  {formData.languages.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('languages', index)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      {t.delete}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </>
           )}
-        </section>
 
-        {/* Certifications */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => toggleOptionalField('certifications')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Award className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.certifications}</h2>
+          {/* No Experience → Strengths */}
+          {formData.hasExperience === false && (
+            <div>
+              <button type="button" onClick={() => setField('hasExperience', null)}
+                className="mb-5 px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors">
+                {t.back}
+              </button>
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-4 text-sm text-gray-600 dark:text-gray-300">
+                {t.noExperienceMessage}
               </div>
-              {showOptionalFields.certifications ? (
-                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-          </div>
-          
-          {showOptionalFields.certifications && (
-            <>
-              <div className="flex justify-end mb-4">
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('certifications', '')}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addCertification}
-                </button>
+              <div className="flex items-center mb-4">
+                <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 shrink-0" />
+                <span className={sectionHeadingCls}>{t.strengths}</span>
               </div>
-              
-              {formData.certifications.map((cert, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <input
-                    type="text"
-                    placeholder={t.certificationPlaceholder}
-                    value={cert}
-                    onChange={(e) => handleSimpleArrayChange('certifications', index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  {formData.certifications.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('certifications', index)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      {t.delete}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </>
+              <textarea value={formData.strength} onChange={e => setField('strength', e.target.value)}
+                rows={4} placeholder={t.strengthsPlaceholder} className={inputCls} />
+            </div>
           )}
-        </section>
 
-        {/* Achievements */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => toggleOptionalField('achievements')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.achievements}</h2>
-              </div>
-              {showOptionalFields.achievements ? (
-                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-          </div>
-          
-          {showOptionalFields.achievements && (
-            <>
-              <div className="flex justify-end mb-4">
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('achievements', '')}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addAchievement}
-                </button>
-              </div>
-              
-              {formData.achievements.map((achievement, index) => (
-                <div key={index} className="flex items-center space-x-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <input
-                    type="text"
-                    placeholder={t.achievementPlaceholder}
-                    value={achievement}
-                    onChange={(e) => handleSimpleArrayChange('achievements', index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  {formData.achievements.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('achievements', index)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      {t.delete}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </>
-          )}
-        </section>
+          {/* With Experience */}
+          {formData.hasExperience === true && (
+            <div>
+              <button type="button" onClick={() => setField('hasExperience', null)}
+                className="mb-5 px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors">
+                {t.back}
+              </button>
 
-        {/* Extracurricular Activities */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => toggleOptionalField('extracurricular')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Calendar className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.extracurricularActivities}</h2>
-              </div>
-              {showOptionalFields.extracurricular ? (
-                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-          </div>
-          
-          {showOptionalFields.extracurricular && (
-            <>
-              <div className="flex justify-end mb-4">
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('extracurricularActivities', { title: '', date: '', details: '' })}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t.addActivity}
-                </button>
-              </div>
-              
-              {formData.extracurricularActivities.map((activity, index) => (
-                <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
+              {formData.experiences.map((exp, index) => (
+                <div key={index} className={cardCls}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t.activity} {index + 1}</h3>
-                    {formData.extracurricularActivities.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayItem('extracurricularActivities', index)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                      >
+                    <h3 className="text-base font-medium text-gray-900 dark:text-white">{t.experience} {index + 1}</h3>
+                    {formData.experiences.length > 1 && (
+                      <button type="button" onClick={() => removeItem('experiences', index)} className={deleteBtnCls}>
                         {t.delete}
                       </button>
                     )}
                   </div>
-                  
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <input
-                      type="text"
-                      placeholder={t.activityTitlePlaceholder}
-                      value={activity.title}
-                      onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'title', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder={t.activityDatePlaceholder}
-                      value={activity.date}
-                      onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'date', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
+                    <input type="text" placeholder={t.companyName} value={exp.company}
+                      onChange={e => handleArrayChange('experiences', index, 'company', e.target.value)} className={inputCls} />
+                    <input type="text" placeholder={t.jobTitlePlaceholder} value={exp.title}
+                      onChange={e => handleArrayChange('experiences', index, 'title', e.target.value)} className={inputCls} />
                   </div>
-                  
-                  <textarea
-                    placeholder={t.activityDetails}
-                    value={activity.details}
-                    onChange={(e) => handleArrayInputChange('extracurricularActivities', index, 'details', e.target.value)}
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
+                  <input type="text" placeholder={t.durationPlaceholder} value={exp.duration}
+                    onChange={e => handleArrayChange('experiences', index, 'duration', e.target.value)}
+                    className={inputCls + ' mb-4'} />
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t.jobDetailsOptional}</label>
+                  <textarea placeholder={t.jobDetails} value={exp.details}
+                    onChange={e => handleArrayChange('experiences', index, 'details', e.target.value)}
+                    rows={3} className={inputCls} />
                 </div>
               ))}
-            </>
+
+              {/* Add Experience button — shown up to 3 entries, then one more click shows additional */}
+              {(formData.experiences.length < 3 || (formData.experiences.length === 3 && !showAdditionalExperience)) && (
+                <div className="flex justify-end mt-2 mb-4">
+                  <button type="button" onClick={handleAddExperience} className={addBtnCls}>
+                    <Plus className="w-4 h-4 mr-1.5" />{t.addExperience}
+                  </button>
+                </div>
+              )}
+
+              {/* Additional Work Experience textarea */}
+              {showAdditionalExperience && (
+                <div className={cardCls}>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t.additionalWorkExperience}</h3>
+                    <button type="button" onClick={handleDeleteAdditionalExperience} className={deleteBtnCls}>
+                      {t.delete}
+                    </button>
+                  </div>
+                  <textarea value={formData.additionalExperience}
+                    onChange={e => setField('additionalExperience', e.target.value)}
+                    placeholder={t.additionalWorkExperiencePlaceholder} rows={4} className={inputCls} />
+                </div>
+              )}
+            </div>
           )}
         </section>
 
-        {/* Reference */}
-        <section className="border-b border-gray-200 dark:border-gray-700 pb-8">
-          <div className="mb-6">
+        {/* ── Education ── */}
+        <section className={sectionBorderCls}>
+          <div className="flex items-center mb-6">
+            <GraduationCap className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+            <h2 className={sectionHeadingCls}>{t.education}</h2>
+          </div>
+
+          {formData.education.map((edu, index) => (
+            <div key={index} className={cardCls}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {selectedLanguage === 'English' ? `Education ${index + 1}` : `Pendidikan ${index + 1}`}
+                </h3>
+                {formData.education.length > 1 && (
+                  <button type="button" onClick={() => removeItem('education', index)} className={deleteBtnCls}>
+                    {t.delete}
+                  </button>
+                )}
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <input type="text" placeholder={t.institutionPlaceholder} value={edu.institution}
+                  onChange={e => handleArrayChange('education', index, 'institution', e.target.value)} className={inputCls} />
+                <input type="text" placeholder={t.qualificationPlaceholder} value={edu.qualification}
+                  onChange={e => handleArrayChange('education', index, 'qualification', e.target.value)} className={inputCls} />
+                <input type="text" placeholder={t.durationEducationPlaceholder} value={edu.duration}
+                  onChange={e => handleArrayChange('education', index, 'duration', e.target.value)} className={inputCls} />
+                <input type="text" placeholder={t.resultPlaceholder} value={edu.result}
+                  onChange={e => handleArrayChange('education', index, 'result', e.target.value)} className={inputCls} />
+              </div>
+            </div>
+          ))}
+
+          {/* Add Education button — up to 3, then one more click shows additional */}
+          {(formData.education.length < 3 || (formData.education.length === 3 && !showAdditionalEducation)) && (
+            <div className="flex justify-end mt-2 mb-4">
+              <button type="button" onClick={handleAddEducation} className={addBtnCls}>
+                <Plus className="w-4 h-4 mr-1.5" />{t.addEducation}
+              </button>
+            </div>
+          )}
+
+          {/* Additional Education textarea */}
+          {showAdditionalEducation && (
+            <div className={cardCls}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t.additionalEducation}</h3>
+                <button type="button" onClick={handleDeleteAdditionalEducation} className={deleteBtnCls}>
+                  {t.delete}
+                </button>
+              </div>
+              <textarea value={formData.additionalEducation}
+                onChange={e => setField('additionalEducation', e.target.value)}
+                placeholder={t.additionalEducationPlaceholder} rows={3} className={inputCls} />
+            </div>
+          )}
+        </section>
+
+        {/* ── Technical Skills ── */}
+        <section className={sectionBorderCls}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div className="flex items-center">
+              <Code className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+              <h2 className={sectionHeadingCls}>{t.technicalSkills}</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={autofillWithAI} disabled={isGeneratingAI}
+                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50">
+                {isGeneratingAI ? <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {t.autoFillWithAI}
+              </button>
+              <button type="button" onClick={autofillTechnicalSkills}
+                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors">
+                {t.autoFillExamples}
+              </button>
+              {formData.technicalSkills.length < 5 && (
+                <button type="button"
+                  onClick={() => addItem('technicalSkills', { skill: '', percentage: 50 })}
+                  className={addBtnCls}>
+                  <Plus className="w-4 h-4 mr-1.5" />{t.addSkill}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-3">
+            {formData.technicalSkills.map((_, index) => (
+              <SkillRow key={index} section="technicalSkills" index={index} skills={formData.technicalSkills} />
+            ))}
+          </div>
+        </section>
+
+        {/* ── Soft Skills ── */}
+        <section className={sectionBorderCls}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div className="flex items-center">
+              <Heart className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+              <h2 className={sectionHeadingCls}>{t.softSkills}</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={autofillWithAI} disabled={isGeneratingAI}
+                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1 disabled:opacity-50">
+                {isGeneratingAI ? <div className="w-3 h-3 border-2 border-purple-700 border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {t.autoFillWithAI}
+              </button>
+              <button type="button" onClick={autofillSoftSkills}
+                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full transition-colors">
+                {t.autoFillExamples}
+              </button>
+              {formData.softSkills.length < 5 && (
+                <button type="button"
+                  onClick={() => addItem('softSkills', { skill: '', percentage: 50 })}
+                  className={addBtnCls}>
+                  <Plus className="w-4 h-4 mr-1.5" />{t.addSkill}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-3">
+            {formData.softSkills.map((_, index) => (
+              <SkillRow key={index} section="softSkills" index={index} skills={formData.softSkills} />
+            ))}
+          </div>
+        </section>
+
+        {/* ── Reference ── */}
+        <section className={sectionBorderCls}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+              <Users className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0" />
+              <h2 className={sectionHeadingCls}>{t.reference}</h2>
+            </div>
+            {/* Reference toggle */}
             <button
               type="button"
-              onClick={() => toggleOptionalField('reference')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
+              onClick={() => setReferenceIncluded(v => !v)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              <div className="flex items-center">
-                <Users className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t.reference}</h2>
-              </div>
-              {showOptionalFields.reference ? (
-                <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              )}
+              {referenceIncluded
+                ? <ToggleRight className="w-8 h-8 text-yellow-500" />
+                : <ToggleLeft className="w-8 h-8 text-gray-400" />}
+              <span className={referenceIncluded ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}>
+                {referenceIncluded ? t.referenceIncluded : t.availableUponRequest}
+              </span>
             </button>
           </div>
-          
-          {showOptionalFields.reference && (
+
+          {/* Soft hint */}
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 ml-9">
+            {t.switchToAvailableUponRequest}
+          </p>
+
+          {referenceIncluded ? (
             <>
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg mb-4 border border-yellow-200 dark:border-yellow-800">
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  {t.referenceExample}
-                </p>
+              {/* Example info box */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-5 text-sm text-gray-600 dark:text-gray-300">
+                <p className="font-medium mb-1">{selectedLanguage === 'English' ? 'Example:' : 'Contoh:'} <span className="text-gray-500">{t.referenceExampleTypes}</span></p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs mt-2 text-gray-500 dark:text-gray-400">
+                  <span>{t.referenceName} : Dr. Sarah Johnson</span>
+                  <span>{t.referencePosition} : Senior Manager</span>
+                  <span>{t.referenceCompany} : Tech Solutions Sdn Bhd</span>
+                  <span>{t.referencePhone} : +60123456789</span>
+                </div>
               </div>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <input
-                  type="text"
-                  placeholder={t.referenceNamePlaceholder}
-                  value={formData.reference.name}
-                  onChange={(e) => handleNestedInputChange('reference', 'name', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.referencePositionPlaceholder}
-                  value={formData.reference.position}
-                  onChange={(e) => handleNestedInputChange('reference', 'position', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.referenceCompanyPlaceholder}
-                  value={formData.reference.company}
-                  onChange={(e) => handleNestedInputChange('reference', 'company', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder={t.referenceContactPlaceholder}
-                  value={formData.reference.contact}
-                  onChange={(e) => handleNestedInputChange('reference', 'contact', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
+
+              {formData.references.map((ref, index) => (
+                <div key={index} className={cardCls}>
+                  {formData.references.length > 1 && (
+                    <div className="flex justify-end mb-3">
+                      <button type="button" onClick={() => removeItem('references', index)} className={deleteBtnCls}>
+                        {t.delete}
+                      </button>
+                    </div>
+                  )}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <input type="text" placeholder={t.referenceName} value={ref.name}
+                      onChange={e => handleArrayChange('references', index, 'name', e.target.value)} className={inputCls} />
+                    <input type="text" placeholder={t.referenceCompany} value={ref.company}
+                      onChange={e => handleArrayChange('references', index, 'company', e.target.value)} className={inputCls} />
+                    <input type="text" placeholder={t.referencePosition} value={ref.position}
+                      onChange={e => handleArrayChange('references', index, 'position', e.target.value)} className={inputCls} />
+                    <input type="text" placeholder={t.referencePhone} value={ref.contact}
+                      onChange={e => handleArrayChange('references', index, 'contact', e.target.value)} className={inputCls} />
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Reference button — up to 2, then one more click shows additional */}
+              {(formData.references.length < 2 || (formData.references.length === 2 && !showAdditionalReference)) && (
+                <div className="flex justify-end mt-2 mb-4">
+                  <button type="button" onClick={handleAddReference} className={addBtnCls}>
+                    <Plus className="w-4 h-4 mr-1.5" />{t.addReference}
+                  </button>
+                </div>
+              )}
+
+              {/* Additional Reference textarea */}
+              {showAdditionalReference && (
+                <div className={cardCls}>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t.additionalReference}</h3>
+                    <button type="button" onClick={handleDeleteAdditionalReference} className={deleteBtnCls}>
+                      {t.delete}
+                    </button>
+                  </div>
+                  <textarea value={formData.additionalReference}
+                    onChange={e => setField('additionalReference', e.target.value)}
+                    placeholder={t.additionalReferencePlaceholder} rows={3} className={inputCls} />
+                </div>
+              )}
             </>
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 text-center text-sm text-gray-600 dark:text-gray-300">
+              {t.referencesAvailableUponRequest}
+            </div>
           )}
         </section>
 
-        {/* Submit and Reset Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-          <button
-            type="button"
-            onClick={resetForm}
-            className="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 flex items-center transform hover:scale-105 shadow-lg"
-          >
-            <RotateCcw className="w-5 h-5 mr-3" />
-            {t.resetForm}
+        {/* ── Additional Details (collapsed panel) ── */}
+        <section className={sectionBorderCls}>
+          {!showAdditionalDetails ? (
+            <button type="button" onClick={() => setShowAdditionalDetails(true)}
+              className="w-full px-5 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
+              {t.additionalDetails}
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedLanguage === 'English' ? 'Additional Details' : 'Maklumat Tambahan'}
+                </h2>
+                <button type="button" onClick={() => setShowAdditionalDetails(false)}
+                  className={deleteBtnCls + ' px-4 py-1.5 text-sm'}>
+                  {t.closeAdditionalDetails}
+                </button>
+              </div>
+
+              {/* Language (Optional) */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <button type="button"
+                  onClick={() => setExpandedAdditional(p => ({ ...p, languages: !p.languages }))}
+                  className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{t.languageProficiency}</span>
+                  </div>
+                  {expandedAdditional.languages ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                </button>
+                {expandedAdditional.languages && (
+                  <div className="p-4 space-y-3">
+                    {formData.languages.map((lang, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <input type="text" placeholder={t.languagePlaceholder} value={lang.language}
+                          onChange={e => handleArrayChange('languages', index, 'language', e.target.value)}
+                          className={inputCls + ' flex-1'} />
+                        <select value={lang.proficiency}
+                          onChange={e => handleArrayChange('languages', index, 'proficiency', e.target.value)}
+                          className={'w-full sm:w-auto ' + inputCls}>
+                          <option value="beginner">{t.beginner}</option>
+                          <option value="intermediate">{t.intermediate}</option>
+                          <option value="professional">{t.professional}</option>
+                          <option value="native">{t.native}</option>
+                        </select>
+                        {formData.languages.length > 1 && (
+                          <button type="button" onClick={() => removeItem('languages', index)} className={deleteBtnCls}>
+                            {t.delete}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addItem('languages', { language: '', proficiency: 'beginner' })}
+                      className={addBtnCls}>
+                      <Plus className="w-4 h-4 mr-1.5" />{t.addLanguage}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Certifications (Optional) */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <button type="button"
+                  onClick={() => setExpandedAdditional(p => ({ ...p, certifications: !p.certifications }))}
+                  className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{t.certifications}</span>
+                  </div>
+                  {expandedAdditional.certifications ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                </button>
+                {expandedAdditional.certifications && (
+                  <div className="p-4 space-y-3">
+                    {formData.certifications.map((cert, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input type="text" placeholder={t.certificationPlaceholder} value={cert}
+                          onChange={e => handleSimpleArrayChange('certifications', index, e.target.value)}
+                          className={inputCls + ' flex-1'} />
+                        {formData.certifications.length > 1 && (
+                          <button type="button" onClick={() => removeItem('certifications', index)} className={deleteBtnCls}>
+                            {t.delete}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addItem('certifications', '')} className={addBtnCls}>
+                      <Plus className="w-4 h-4 mr-1.5" />{t.addCertification}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Achievements (Optional) */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <button type="button"
+                  onClick={() => setExpandedAdditional(p => ({ ...p, achievements: !p.achievements }))}
+                  className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{t.achievements}</span>
+                  </div>
+                  {expandedAdditional.achievements ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                </button>
+                {expandedAdditional.achievements && (
+                  <div className="p-4 space-y-3">
+                    {formData.achievements.map((ach, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input type="text" placeholder={t.achievementPlaceholder} value={ach}
+                          onChange={e => handleSimpleArrayChange('achievements', index, e.target.value)}
+                          className={inputCls + ' flex-1'} />
+                        {formData.achievements.length > 1 && (
+                          <button type="button" onClick={() => removeItem('achievements', index)} className={deleteBtnCls}>
+                            {t.delete}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addItem('achievements', '')} className={addBtnCls}>
+                      <Plus className="w-4 h-4 mr-1.5" />{t.addAchievement}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Activities (Optional) */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <button type="button"
+                  onClick={() => setExpandedAdditional(p => ({ ...p, activities: !p.activities }))}
+                  className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{t.extracurricularActivities}</span>
+                  </div>
+                  {expandedAdditional.activities ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                </button>
+                {expandedAdditional.activities && (
+                  <div className="p-4 space-y-4">
+                    {formData.extracurricularActivities.map((act, index) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.activity} {index + 1}</span>
+                          {formData.extracurricularActivities.length > 1 && (
+                            <button type="button" onClick={() => removeItem('extracurricularActivities', index)} className={deleteBtnCls}>
+                              {t.delete}
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <input type="text" placeholder={t.activityTitlePlaceholder} value={act.title}
+                            onChange={e => handleArrayChange('extracurricularActivities', index, 'title', e.target.value)} className={inputCls} />
+                          <input type="text" placeholder={t.activityDatePlaceholder} value={act.date}
+                            onChange={e => handleArrayChange('extracurricularActivities', index, 'date', e.target.value)} className={inputCls} />
+                        </div>
+                        <textarea placeholder={t.activityDetails} value={act.details}
+                          onChange={e => handleArrayChange('extracurricularActivities', index, 'details', e.target.value)}
+                          rows={2} className={inputCls} />
+                      </div>
+                    ))}
+                    <button type="button"
+                      onClick={() => addItem('extracurricularActivities', { title: '', date: '', details: '' })}
+                      className={addBtnCls}>
+                      <Plus className="w-4 h-4 mr-1.5" />{t.addActivity}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ── Submit / Reset ── */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+          <button type="button" onClick={resetForm}
+            className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-semibold px-8 py-3 rounded-lg transition-all flex items-center justify-center transform hover:scale-105 shadow-lg">
+            <RotateCcw className="w-5 h-5 mr-3" />{t.resetForm}
           </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 flex items-center transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg"
-          >
+          <button type="submit" disabled={isSubmitting || !hasTemplate || !hasResumeLanguage}
+            className="w-full sm:w-auto bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold px-8 py-3 rounded-lg transition-all flex items-center justify-center transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg">
             {isSubmitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                {t.submitting}
-              </>
+              <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />{t.submitting}</>
             ) : (
-              <>
-                <Send className="w-5 h-5 mr-3" />
-                {t.submitResume}
-              </>
+              <><Send className="w-5 h-5 mr-3" />{t.submitResume}</>
             )}
           </button>
         </div>
+        {(!hasTemplate || !hasResumeLanguage) && (
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 -mt-2">
+            {!hasTemplate
+              ? (selectedLanguage === 'English' ? 'Choose a template above to enable submission.' : 'Pilih templat di atas untuk mengaktifkan penghantaran.')
+              : (selectedLanguage === 'English' ? 'Choose a resume language to enable submission.' : 'Pilih bahasa resume untuk mengaktifkan penghantaran.')}
+          </p>
+        )}
       </form>
 
-      {/* Review Popup */}
+      {/* ── Review Popup ── */}
       {showReview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
 
-              {/* Processing overlay */}
-              {isSubmitting && (
-                <div className="flex flex-col items-center justify-center py-16 space-y-6">
-                  <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
-                  <div className="text-center space-y-1">
-                    <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {jobStatus === 'pending'
-                        ? (selectedLanguage === 'English' ? 'Waiting in queue…' : 'Menunggu giliran…')
-                        : (selectedLanguage === 'English' ? 'Building your resume…' : 'Sedang menyediakan resume anda…')}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {jobStatus === 'pending'
-                        ? (selectedLanguage === 'English'
-                            ? 'Server is busy. You will be processed shortly.'
-                            : 'Pelayan sedang sibuk. Anda akan diproses sebentar lagi.')
-                        : (selectedLanguage === 'English'
-                            ? 'AI is enhancing your content and generating the PDF. This takes 1–2 minutes.'
-                            : 'AI sedang memperhalusi kandungan dan menjana PDF. Ini mengambil masa 1–2 minit.')}
-                    </p>
+              {/* Upsell Screen — shown immediately after submit while processing in background */}
+              {showUpsell && !showProcessing && !submitDone && (
+                <div className="flex flex-col items-center py-8 px-4 text-center">
+                  <img src={logo} alt="Templite" className="h-10 w-auto mb-5 invert dark:invert-0" />
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t.thankYouForChoosing}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.orderBeingProcessed}</p>
+                  <div className="flex gap-1 mb-5">
+                    {[0, 150, 300].map(d => (
+                      <div key={d} className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    ))}
                   </div>
-                  <div className="w-full max-w-sm bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div className="h-2 bg-yellow-400 rounded-full animate-progress-indeterminate"></div>
+                  <div className="w-full max-w-sm bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-5 text-left">
+                    <p className="font-bold text-gray-900 dark:text-white text-sm mb-2">✨ {t.levelUpCareer}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold">{t.availableAddons}</p>
+                    <ul className="space-y-1.5">
+                      {[t.addonCV, t.addonPassport, t.addonCoverLetter, t.addonResignation, t.addonFormal, t.addonPortfolio, t.addonCompany].map((addon, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <span className="text-yellow-500 font-bold shrink-0">+</span> {addon}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  {jobStatus === 'processing' && (
-                    <div className="flex flex-col items-center space-y-1 text-xs text-gray-400 dark:text-gray-500">
-                      <span>{selectedLanguage === 'English' ? '✦ Enhancing experience & skills' : '✦ Memperhalusi pengalaman & kemahiran'}</span>
-                      <span>{selectedLanguage === 'English' ? '✦ Generating PDF layout' : '✦ Menjana susun atur PDF'}</span>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-3 w-full max-w-sm">
+                    <a
+                      href="https://wa.me/60172410612?text=Hi%20Templite%20!"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors shadow-md text-center text-sm"
+                    >
+                      ✨ {t.addToMyOrder}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => { setShowUpsell(false); setShowProcessing(true); }}
+                      className="w-full py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-colors text-sm"
+                    >
+                      👍 {t.imGoodForNow}
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Success screen */}
+              {/* Processing Screen — shown after "I'm good for now" */}
+              {showProcessing && !submitDone && (
+                <div className="flex flex-col items-center py-8 px-4 text-center">
+                  <img src={logo} alt="Templite" className="h-10 w-auto mb-5 invert dark:invert-0" />
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-8">{t.preparingDocument}</p>
+                  <div className="w-full max-w-xs space-y-3 mb-8">
+                    {[t.processingStep1, t.processingStep2, t.processingStep3, t.processingStep4, t.processingStep5, t.processingStep6].map((step, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${
+                          checkedSteps > i ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}>
+                          {checkedSteps > i && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-sm text-left transition-colors duration-300 ${
+                          checkedSteps > i ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-400 dark:text-gray-500'
+                        }`}>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowProcessing(false); setShowUpsell(true); }}
+                    className="px-6 py-2.5 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 font-semibold rounded-xl transition-colors text-sm"
+                  >
+                    {t.modifyAddons}
+                  </button>
+                </div>
+              )}
+
+              {/* Success */}
               {submitDone && !isSubmitting && (
-                <div className="flex flex-col items-center justify-center py-16 space-y-6 text-center">
+                <div className="flex flex-col items-center justify-center py-20 space-y-6 text-center">
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
                     <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {selectedLanguage === 'English' ? "We've Received Your Resume!" : 'Resume Anda Telah Diterima!'}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 max-w-md">
-                      {selectedLanguage === 'English'
-                        ? "Thank you for submitting your details. Your resume is being finalized and will be ready shortly. We'll get back to you as soon as it's complete!"
-                        : 'Terima kasih kerana menghantar maklumat anda. Resume anda sedang disiapkan dan akan sedia tidak lama lagi. Kami akan menghubungi anda sebaik sahaja ia selesai!'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { setShowReview(false); setSubmitDone(false); }}
-                    className="mt-4 px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    {selectedLanguage === 'English' ? 'Submit Another Resume' : 'Hantar Resume Lain'}
-                  </button>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {selectedLanguage === 'English' ? 'Completed! You can close the browser now.' : 'Selesai! Anda boleh tutup pelayar sekarang.'}
+                  </h3>
                 </div>
               )}
 
-              {/* Error message */}
+              {/* Error */}
               {submitError && !isSubmitting && !submitDone && (
                 <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
                   {selectedLanguage === 'English' ? `Something went wrong: ${submitError}` : `Ralat berlaku: ${submitError}`}
                 </div>
               )}
 
-              {/* Normal review content — hidden while processing or done */}
+              {/* Review content */}
               {!isSubmitting && !submitDone && (
-              <>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.reviewTitle}</h2>
-                <button
-                  onClick={() => setShowReview(false)}
-                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-6">
-                {/* Basic Info */}
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.basicInformation}</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm dark:text-gray-300">
-                    <div><strong>{t.name}:</strong> {formData.name || t.notProvided}</div>
-                    <div><strong>{t.jobTitleReview}:</strong> {formData.title || t.notProvided}</div>
-                    <div><strong>{t.email}:</strong> {formData.email || t.notProvided}</div>
-                    <div><strong>{t.phone}:</strong> {formData.telephone || t.notProvided}</div>
-                    <div><strong>{t.address}:</strong> {formData.address || t.notProvided}</div>
-                    <div><strong>{t.location}:</strong> {formData.location || t.notProvided}</div>
-                    {formData.linkedin && <div><strong>LinkedIn:</strong> {formData.linkedin}</div>}
+                <>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t.reviewTitle}</h2>
+                    <button onClick={() => setShowReview(false)}
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl leading-none">×</button>
                   </div>
-                </div>
 
-                {/* About Me */}
-                {formData.about && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.aboutMeReview}</h3>
-                    <p className="text-sm dark:text-gray-300">{formData.about}</p>
-                  </div>
-                )}
-
-                {/* Education */}
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.educationReview}</h3>
-                  <div className="text-sm space-y-1 dark:text-gray-300">
-                    <div><strong>{t.degreeReview}:</strong> {formData.education.degree || t.notProvided}</div>
-                    <div><strong>{t.institutionReview}:</strong> {formData.education.institution || t.notProvided}</div>
-                    <div><strong>{t.durationReview}:</strong> {formData.education.duration || t.notProvided}</div>
-                    <div><strong>{t.cgpa}:</strong> {formData.education.cgpa || t.notProvided}</div>
-                  </div>
-                </div>
-
-                {/* Experience */}
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.workExperienceReview}</h3>
-                  {formData.experiences.filter(exp => exp.company.trim()).length > 0 ? (
-                    formData.experiences.filter(exp => exp.company.trim()).map((exp, index) => (
-                      <div key={index} className="mb-3 text-sm dark:text-gray-300">
-                        <div><strong>{exp.title}</strong> {selectedLanguage === 'English' ? 'at' : 'di'} {exp.company}</div>
-                        <div>{exp.location} • {exp.duration}</div>
-                        <div>{exp.details}</div>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.basicInformation}</h3>
+                      <div className="grid md:grid-cols-2 gap-3 text-sm dark:text-gray-300">
+                        <div><strong>{t.name}:</strong> {formData.name || t.notProvided}</div>
+                        <div><strong>{t.jobTitleReview}:</strong> {formData.title || t.notProvided}</div>
+                        <div><strong>{t.email}:</strong> {formData.email || t.notProvided}</div>
+                        <div><strong>{t.phone}:</strong> {formData.telephone || t.notProvided}</div>
+                        <div className="md:col-span-2"><strong>{t.address}:</strong> {formData.address || t.notProvided}</div>
+                        {formData.linkedin && <div className="md:col-span-2"><strong>LinkedIn:</strong> {formData.linkedin}</div>}
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t.noWorkExperience}</p>
-                  )}
-                </div>
-
-                {/* Skills */}
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.skillsReview}</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm dark:text-gray-300">
-                    <div>
-                      <strong>{t.technicalSkillsReview}:</strong>
-                      <ul className="list-disc list-inside mt-1">
-                        {formData.technicalSkills.filter(s => s.skill.trim()).map((skill, index) => (
-                          <li key={index}>{skill.skill} ({skill.percentage}%)</li>
-                        ))}
-                      </ul>
                     </div>
-                    <div>
-                      <strong>{t.softSkillsReview}:</strong>
-                      <ul className="list-disc list-inside mt-1">
-                        {formData.softSkills.filter(s => s.skill.trim()).map((skill, index) => (
-                          <li key={index}>{skill.skill} ({skill.percentage}%)</li>
-                        ))}
-                      </ul>
+
+                    {formData.about && (
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg mb-2 dark:text-white">{t.aboutMeReview}</h3>
+                        <p className="text-sm dark:text-gray-300">{formData.about}</p>
+                      </div>
+                    )}
+
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.workExperienceReview}</h3>
+                      {formData.hasExperience === false ? (
+                        <div className="text-sm dark:text-gray-300">
+                          <p className="italic text-gray-500 mb-2">{t.noExperienceBtn}</p>
+                          {formData.strength && <p><strong>{t.strengthsReview}:</strong> {formData.strength}</p>}
+                        </div>
+                      ) : formData.experiences.filter(e => e.company.trim()).length > 0 ? (
+                        formData.experiences.filter(e => e.company.trim()).map((exp, i) => (
+                          <div key={i} className="mb-3 text-sm dark:text-gray-300">
+                            <div><strong>{exp.title}</strong> {selectedLanguage === 'English' ? 'at' : 'di'} {exp.company}</div>
+                            <div className="text-gray-500">{exp.duration}</div>
+                            {exp.details && <div>{exp.details}</div>}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t.noWorkExperience}</p>
+                      )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Other sections if they have content */}
-                {formData.languages.filter(l => l.language.trim()).length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.languagesReview}</h3>
-                    <div className="text-sm dark:text-gray-300">
-                      {formData.languages.filter(l => l.language.trim()).map((lang, index) => (
-                        <div key={index}>{lang.language} ({lang.proficiency})</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {formData.certifications.filter(c => c.trim()).length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.certificationsReview}</h3>
-                    <ul className="list-disc list-inside text-sm dark:text-gray-300">
-                      {formData.certifications.filter(c => c.trim()).map((cert, index) => (
-                        <li key={index}>{cert}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {formData.achievements.filter(a => a.trim()).length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.achievementsReview}</h3>
-                    <ul className="list-disc list-inside text-sm dark:text-gray-300">
-                      {formData.achievements.filter(a => a.trim()).map((achievement, index) => (
-                        <li key={index}>{achievement}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {formData.extracurricularActivities.filter(a => a.title.trim()).length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.extracurricularActivitiesReview}</h3>
-                    <div className="text-sm space-y-2 dark:text-gray-300">
-                      {formData.extracurricularActivities.filter(a => a.title.trim()).map((activity, index) => (
-                        <div key={index}>
-                          <div><strong>{activity.title}</strong> ({activity.date})</div>
-                          <div>{activity.details}</div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.educationReview}</h3>
+                      {formData.education.filter(e => e.institution.trim()).map((edu, i) => (
+                        <div key={i} className="text-sm dark:text-gray-300 mb-2">
+                          <div><strong>{edu.qualification}</strong> — {edu.institution}</div>
+                          <div className="text-gray-500">{edu.duration}{edu.result ? ` | ${edu.result}` : ''}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
 
-                {/* Reference */}
-                {(formData.reference.name || formData.reference.position) && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.referenceReview}</h3>
-                    <div className="text-sm space-y-1 dark:text-gray-300">
-                      <div><strong>{t.name}:</strong> {formData.reference.name}</div>
-                      <div><strong>{t.positionReview}:</strong> {formData.reference.position}</div>
-                      <div><strong>{t.companyReview}:</strong> {formData.reference.company}</div>
-                      <div><strong>{t.contactReview}:</strong> {formData.reference.contact}</div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.skillsReview}</h3>
+                      <div className="grid md:grid-cols-2 gap-4 text-sm dark:text-gray-300">
+                        <div>
+                          <strong>{t.technicalSkillsReview}:</strong>
+                          <ul className="list-disc list-inside mt-1">
+                            {formData.technicalSkills.filter(s => s.skill).map((s, i) => (
+                              <li key={i}>{s.skill} ({s.percentage}%)</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <strong>{t.softSkillsReview}:</strong>
+                          <ul className="list-disc list-inside mt-1">
+                            {formData.softSkills.filter(s => s.skill).map((s, i) => (
+                              <li key={i}>{s.skill} ({s.percentage}%)</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
+
+                    {formData.references.filter(r => r.name.trim()).length > 0 && (
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg mb-3 dark:text-white">{t.referenceReview}</h3>
+                        {formData.references.filter(r => r.name.trim()).map((ref, i) => (
+                          <div key={i} className="text-sm dark:text-gray-300 mb-2">
+                            <div><strong>{ref.name}</strong> — {ref.position}</div>
+                            <div className="text-gray-500">{ref.company} | {ref.contact}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              
-              <div className="flex justify-end space-x-4 mt-8">
-                <button
-                  onClick={() => setShowReview(false)}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-300"
-                >
-                  {t.backToEdit}
-                </button>
-                <button
-                  onClick={handleFinalSubmit}
-                  disabled={isSubmitting}
-                  className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {t.submitResume}
-                </button>
-              </div>
-              </>
+
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-8">
+                    <button onClick={() => setShowReview(false)}
+                      className="w-full sm:w-auto px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-300 text-center">
+                      {t.backToEdit}
+                    </button>
+                    <button onClick={handleFinalSubmit} disabled={isSubmitting}
+                      className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors flex items-center justify-center">
+                      <Send className="w-4 h-4 mr-2" />{t.submitResume}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* AI Loading Modal */}
+      {/* ── AI Loading Modal ── */}
       {isGeneratingAI && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform animate-pulse">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div className="flex flex-col items-center space-y-6">
-              {/* Animated Spinner */}
               <div className="relative">
-                <div className="w-20 h-20 border-4 border-yellow-200 dark:border-yellow-900 rounded-full"></div>
-                <div className="w-20 h-20 border-4 border-yellow-500 dark:border-yellow-400 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-                <Loader2 className="w-10 h-10 text-yellow-500 dark:text-yellow-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                <div className="w-20 h-20 border-4 border-yellow-200 dark:border-yellow-900 rounded-full" />
+                <div className="w-20 h-20 border-4 border-yellow-500 dark:border-yellow-400 border-t-transparent rounded-full animate-spin absolute top-0 left-0" />
+                <Loader2 className="w-10 h-10 text-yellow-500 dark:text-yellow-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
               </div>
-              
-              {/* Loading Text */}
               <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                  {t.generatingWithAI}
-                </h3>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t.generatingWithAI}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedLanguage === 'English' 
-                    ? 'Creating personalized content for your resume...' 
-                    : 'Membuat kandungan diperibadikan untuk resume anda...'}
+                  {selectedLanguage === 'English' ? 'Creating personalized content for your resume...' : 'Membuat kandungan diperibadikan untuk resume anda...'}
                 </p>
               </div>
-              
-              {/* Animated Dots */}
               <div className="flex space-x-2">
-                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                {[0, 150, 300].map(delay => (
+                  <div key={delay} className="w-3 h-3 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+                ))}
               </div>
             </div>
           </div>

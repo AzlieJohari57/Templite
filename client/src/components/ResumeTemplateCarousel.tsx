@@ -22,23 +22,23 @@ const imgA = thumbA, imgB = thumbB, imgC = thumbC, imgD = thumbD,
       imgM = thumbM;
 
 const TEMPLATE_DATA = [
-  { id: 'A', thumb: thumbA, full: imgA, en: 'Template A - Classic',      bm: 'Templat A - Klasik',      descEn: 'Traditional professional layout',  descBm: 'Susun atur profesional tradisional' },
-  { id: 'B', thumb: thumbB, full: imgB, en: 'Template B - ATS Friendly', bm: 'Templat B - Mesra ATS',   descEn: 'Optimized for applicant tracking',  descBm: 'Dioptimumkan untuk sistem penjejakan' },
-  { id: 'C', thumb: thumbC, full: imgC, en: 'Template C - Executive',    bm: 'Templat C - Eksekutif',   descEn: 'Corporate executive style',         descBm: 'Gaya eksekutif korporat' },
-  { id: 'D', thumb: thumbD, full: imgD, en: 'Template D - Creative',     bm: 'Templat D - Kreatif',     descEn: 'Bold creative design',              descBm: 'Reka bentuk kreatif berani' },
-  { id: 'E', thumb: thumbE, full: imgE, en: 'Template E - Elegant',      bm: 'Templat E - Elegan',      descEn: 'Elegant minimalist style',          descBm: 'Gaya minimalis elegan' },
-  { id: 'F', thumb: thumbF, full: imgF, en: 'Template F - Simple',       bm: 'Templat F - Ringkas',     descEn: 'Clean and simple layout',           descBm: 'Susun atur bersih dan ringkas' },
-  { id: 'G', thumb: thumbG, full: imgG, en: 'Template G - Compact',      bm: 'Templat G - Padat',       descEn: 'Space-efficient design',            descBm: 'Reka bentuk cekap ruang' },
-  { id: 'H', thumb: thumbH, full: imgH, en: 'Template H - Professional', bm: 'Templat H - Profesional', descEn: 'Clean professional design',         descBm: 'Reka bentuk profesional bersih' },
-  { id: 'I', thumb: thumbI, full: imgI, en: 'Template I - Modern',       bm: 'Templat I - Moden',       descEn: 'Modern creative layout',            descBm: 'Susun atur kreatif moden' },
-  { id: 'J', thumb: thumbJ, full: imgJ, en: 'Template J - Technical',    bm: 'Templat J - Teknikal',    descEn: 'Great for tech professionals',      descBm: 'Sesuai untuk profesional teknologi' },
-  { id: 'K', thumb: thumbK, full: imgK, en: 'Template K - Minimal',      bm: 'Templat K - Minimal',     descEn: 'Ultra-minimal clean design',        descBm: 'Reka bentuk bersih ultra-minimal' },
-  { id: 'L', thumb: thumbL, full: imgL, en: 'Template L - Stylish',      bm: 'Templat L - Bergaya',     descEn: 'Stylish modern design',             descBm: 'Reka bentuk moden bergaya' },
-  { id: 'M', thumb: thumbM, full: imgM, en: 'Template M - ATS Friendly', bm: 'Templat M - Mesra ATS',   descEn: 'ATS-optimized clean format',        descBm: 'Format bersih dioptimumkan ATS' },
+  { id: 'A', thumb: thumbA, full: imgA, en: 'Template A - Best Overall',  bm: 'Templat A - Terbaik Keseluruhan', descEn: 'Top pick for all industries',         descBm: 'Pilihan utama untuk semua industri' },
+  { id: 'B', thumb: thumbB, full: imgB, en: 'Template B - Coloured ATS',  bm: 'Templat B - ATS Berwarna',        descEn: 'Coloured ATS-optimized design',       descBm: 'Reka bentuk ATS berwarna' },
+  { id: 'C', thumb: thumbC, full: imgC, en: 'Template C - Finance',       bm: 'Templat C - Kewangan',            descEn: 'Ideal for finance professionals',     descBm: 'Sesuai untuk profesional kewangan' },
+  { id: 'D', thumb: thumbD, full: imgD, en: 'Template D - Friendly ATS',  bm: 'Templat D - Mesra ATS',           descEn: 'ATS-friendly clean layout',           descBm: 'Susun atur bersih mesra ATS' },
+  { id: 'E', thumb: thumbE, full: imgE, en: 'Template E - Business',      bm: 'Templat E - Perniagaan',          descEn: 'Professional business style',         descBm: 'Gaya perniagaan profesional' },
+  { id: 'F', thumb: thumbF, full: imgF, en: 'Template F - Engineering',   bm: 'Templat F - Kejuruteraan',        descEn: 'Tailored for engineering roles',      descBm: 'Direka untuk bidang kejuruteraan' },
+  { id: 'G', thumb: thumbG, full: imgG, en: 'Template G - Designer',      bm: 'Templat G - Designer',            descEn: 'Creative design portfolio style',     descBm: 'Gaya portfolio reka bentuk kreatif' },
+  { id: 'H', thumb: thumbH, full: imgH, en: 'Template H - Admin',         bm: 'Templat H - Pentadbiran',         descEn: 'Clean layout for admin roles',        descBm: 'Susun atur kemas untuk pentadbiran' },
+  { id: 'I', thumb: thumbI, full: imgI, en: 'Template I - HR',            bm: 'Templat I - HR',                  descEn: 'Designed for HR professionals',       descBm: 'Direka untuk profesional HR' },
+  { id: 'J', thumb: thumbJ, full: imgJ, en: 'Template J - Government',    bm: 'Templat J - Kerajaan',            descEn: 'Formal style for government jobs',    descBm: 'Gaya formal untuk sektor kerajaan' },
+  { id: 'K', thumb: thumbK, full: imgK, en: 'Template K - CV',            bm: 'Templat K - CV',                  descEn: 'Detailed CV format',                  descBm: 'Format CV terperinci' },
+  { id: 'L', thumb: thumbL, full: imgL, en: 'Template L - Internship',    bm: 'Templat L - Latihan Industri',    descEn: 'Perfect for internship applications', descBm: 'Sesuai untuk permohonan latihan industri' },
+  { id: 'M', thumb: thumbM, full: imgM, en: 'Template M - Fully ATS',     bm: 'Templat M - ATS Penuh',           descEn: 'Maximum ATS compatibility',           descBm: 'Keserasian ATS maksimum' },
 ];
 
 interface ResumeTemplateCarouselProps {
-  selectedTemplate: string;
+  selectedTemplate: string | null;
   onTemplateSelect: (templateId: string) => void;
   language: Language;
 }
@@ -106,6 +106,8 @@ const ResumeTemplateCarousel: React.FC<ResumeTemplateCarouselProps> = ({
                       alt={template.name}
                       width={300}
                       height={424}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover object-top"
                     />
                     {/* Zoom button — CSS opacity only (GPU-composited) */}
