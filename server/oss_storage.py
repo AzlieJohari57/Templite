@@ -114,7 +114,8 @@ def get_bytes(key: str) -> bytes | None:
     import oss2
     try:
         return _get_bucket().get_object(key).read()
-    except oss2.exceptions.NoSuchKey:
+    except oss2.exceptions.NotFound:
+        # Covers NoSuchKey and the bare 404 OSS returns when the key is absent.
         return None
 
 

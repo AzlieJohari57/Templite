@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Any
@@ -210,8 +210,17 @@ async def log_order(payload: LogOrderRequest):
 
 @app.get("/api/auth/google")
 async def auth_google():
-    """Redirect to Google OAuth2 consent screen."""
-    return RedirectResponse(url=get_auth_url())
+    """
+    Send the browser to the Google OAuth2 consent screen.
+
+    Function Compute rejects a 3xx to an external host ("ExternalRedirectForbidden"),
+    so navigate client-side instead of returning a RedirectResponse.
+    """
+    url = get_auth_url()
+    return HTMLResponse(
+        f'<!doctype html><meta http-equiv="refresh" content="0;url={url}">'
+        f'<p>Redirecting to Google… <a href="{url}">continue</a></p>'
+    )
 
 
 @app.get("/api/auth/callback")

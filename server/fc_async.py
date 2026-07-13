@@ -11,9 +11,12 @@ Local dev (OSS/FC not configured):
     original ECS design.
 
 Config (env):
-    FC_WORKER_FUNCTION   name of the worker function (enables async invoke)
-    FC_ENDPOINT          account FC endpoint, e.g. <account>.<region>.fc.aliyuncs.com
-    FC_REGION            e.g. ap-southeast-1
+    WORKER_FUNCTION      name of the worker function (enables async invoke)
+    WORKER_FC_ENDPOINT   account FC endpoint, e.g. <account>.<region>.fc.aliyuncs.com
+    WORKER_FC_REGION     e.g. ap-southeast-1
+
+Names avoid the FC_ prefix, which Function Compute reserves for its own
+injected variables and refuses to accept in a function's env config.
 """
 
 from __future__ import annotations
@@ -23,9 +26,9 @@ import json
 import os
 from typing import Any
 
-FC_WORKER_FUNCTION = os.getenv("FC_WORKER_FUNCTION", "")
-FC_ENDPOINT = os.getenv("FC_ENDPOINT", "")
-FC_REGION = os.getenv("FC_REGION", "")
+FC_WORKER_FUNCTION = os.getenv("WORKER_FUNCTION", "")
+FC_ENDPOINT = os.getenv("WORKER_FC_ENDPOINT", "")
+FC_REGION = os.getenv("WORKER_FC_REGION", "") or os.getenv("FC_REGION", "")
 
 
 def _use_fc() -> bool:
@@ -38,9 +41,12 @@ def _async_invoke_fc(job_id: str, payload: dict[str, Any]) -> None:
     OpenAPI. FC queues the invocation and returns immediately; credentials come
     from the API function's RAM role (STS injected into the environment).
     """
+    import io
+
     from alibabacloud_fc20230330.client import Client as FCClient
     from alibabacloud_fc20230330 import models as fc_models
     from alibabacloud_tea_openapi import models as open_api_models
+    from alibabacloud_tea_util import models as util_models
 
     config = open_api_models.Config(
         access_key_id=os.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"),
@@ -52,12 +58,12 @@ def _async_invoke_fc(job_id: str, payload: dict[str, Any]) -> None:
     client = FCClient(config)
 
     body = json.dumps({"job_id": job_id, "payload": payload}).encode()
-    request = fc_models.InvokeFunctionRequest(
-        body=body,
-        # Queue it and return right away instead of blocking on the result.
-        x_fc_invocation_type="Async",
+    request = fc_models.InvokeFunctionRequest(body=io.BytesIO(body))
+    # Queue it and return right away instead of blocking on the result.
+    headers = fc_models.InvokeFunctionHeaders(x_fc_invocation_type="Async")
+    client.invoke_function_with_options(
+        FC_WORKER_FUNCTION, request, headers, util_models.RuntimeOptions()
     )
-    client.invoke_function(FC_WORKER_FUNCTION, request)
 
 
 def submit_job(job_id: str, payload: dict[str, Any]) -> None:

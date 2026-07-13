@@ -66,11 +66,16 @@ def get_auth_url() -> str:
 def save_token_from_code(code: str) -> None:
     """Exchange authorization code for tokens and save to token.json."""
     global _active_flow
-    if _active_flow is None:
-        raise ValueError("No active auth flow. Visit /api/auth/google first.")
-    _active_flow.fetch_token(code=code)
-    creds = _active_flow.credentials
-    _write_token(creds.to_json())
+    # On Function Compute the /auth/google and /auth/callback requests can land on
+    # different instances, so the in-memory flow may not be here. The code exchange
+    # only needs the client secrets + redirect URI, so rebuild the flow if missing.
+    flow = _active_flow or Flow.from_client_secrets_file(
+        str(CREDENTIALS_FILE),
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI,
+    )
+    flow.fetch_token(code=code)
+    _write_token(flow.credentials.to_json())
     _active_flow = None
 
 

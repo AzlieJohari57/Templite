@@ -39,3 +39,6 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# deploy skill tooling (ossutil / aliyun CLI)
+.deploy-tools/
