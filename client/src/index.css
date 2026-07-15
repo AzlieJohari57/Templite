@@ -11,6 +11,9 @@ input[type="range"] {
   background: #d1d5db;
   outline: none;
   cursor: pointer;
+  /* Keep horizontal drags on the slider from being hijacked by page scroll on
+     touch devices, so the thumb tracks the finger smoothly. */
+  touch-action: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {

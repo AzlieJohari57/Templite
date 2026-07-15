@@ -14,7 +14,7 @@ export interface ResumeStatusResponse {
   error?: string;
 }
 
-export const uploadImage = async (imageFile: File, phone: string): Promise<{ image_url: string }> => {
+export const uploadImage = async (imageFile: File, phone: string): Promise<{ image_url: string; drive_image_url?: string }> => {
   const formData = new FormData();
   formData.append('image', imageFile);
   formData.append('phone', phone);

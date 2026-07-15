@@ -85,6 +85,7 @@ function App() {
           language={selectedLanguage}
         />
         <ResumeForm
+          selectedTemplate={selectedTemplate}
           selectedTemplateRef={selectedTemplateRef}
           selectedLanguage={selectedLanguage}
           resumeLanguage={resumeLanguage}

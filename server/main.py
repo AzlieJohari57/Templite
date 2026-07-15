@@ -86,6 +86,7 @@ class LogOrderRequest(BaseModel):
     template: str = Field("", max_length=5)
     pages: str = Field("", max_length=5)
     resumeLink: str = Field("", max_length=500)
+    imageLink: str = Field("", max_length=500)
 
 
 @app.post("/api/create-resume")
@@ -278,6 +279,7 @@ async def upload_image(image: UploadFile = File(...), phone: str = Form(...)):
     # Upload the JPEG to OSS and return an absolute URL. The PDF render happens
     # in a *separate* worker invocation, so the profile image must be reachable
     # over HTTPS (Chromium loads it by URL) rather than by local relative path.
+    drive_image_url = ""  # shareable Google Drive link, later logged to the sheet
     try:
         if oss_storage.is_configured():
             key = oss_storage.put_image(phone_clean, image_path)
@@ -285,9 +287,9 @@ async def upload_image(image: UploadFile = File(...), phone: str = Form(...)):
         else:
             image_url = f"../images/{phone_clean}.jpg"  # local-dev fallback
 
-        # Also archive a copy to Google Drive (best-effort).
+        # Also archive a copy to Google Drive (best-effort) and keep its link.
         try:
-            upload_image_to_drive(image_path)
+            drive_image_url = upload_image_to_drive(image_path) or ""
         except Exception as e:
             print(f"[GDrive] Image upload failed: {e}")
     finally:
@@ -295,7 +297,7 @@ async def upload_image(image: UploadFile = File(...), phone: str = Form(...)):
         if oss_storage.is_configured():
             image_path.unlink(missing_ok=True)
 
-    return {"success": True, "image_url": image_url}
+    return {"success": True, "image_url": image_url, "drive_image_url": drive_image_url}
 
 
 # Serve built frontend in production

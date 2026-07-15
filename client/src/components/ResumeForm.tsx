@@ -74,6 +74,7 @@ interface FormData {
 }
 
 interface ResumeFormProps {
+  selectedTemplate: string | null;
   selectedTemplateRef: React.MutableRefObject<string | null>;
   selectedLanguage: AppLanguage;
   resumeLanguage: AppLanguage | null;
@@ -179,9 +180,78 @@ const INITIAL_FORM_DATA: FormData = {
   extracurricularActivities: [{ title: '', date: '', details: '' }],
 };
 
+// ─── Skill row (hoisted + memoized) ───────────────────────────────────────────
+// Defined at module scope (not inside ResumeForm's render) so its identity is
+// stable across parent re-renders. Otherwise React would remount the <input
+// type="range"> on every slider change, breaking pointer capture mid-drag and
+// making the thumb jump/reset while dragging on both touch and mouse.
+
+type FormText = (typeof translations)['English']['form'];
+
+interface SkillRowProps {
+  section: 'technicalSkills' | 'softSkills';
+  index: number;
+  skill: Skill;
+  count: number;
+  t: FormText;
+  cardCls: string;
+  inputCls: string;
+  deleteBtnCls: string;
+  onChange: (section: 'technicalSkills' | 'softSkills', index: number, field: string, value: any) => void;
+  onRemove: (section: 'technicalSkills' | 'softSkills', index: number) => void;
+  getSkillLevel: (pct: number) => string;
+  getSkillLevelColor: (pct: number) => string;
+}
+
+const SkillRow = React.memo(({
+  section, index, skill, count, t, cardCls, inputCls, deleteBtnCls,
+  onChange, onRemove, getSkillLevel, getSkillLevelColor,
+}: SkillRowProps) => {
+  const placeholderList = section === 'technicalSkills' ? TECH_SKILL_PLACEHOLDERS : SOFT_SKILL_PLACEHOLDERS;
+  const fallback = section === 'technicalSkills'
+    ? 'Technical Skill / Kemahiran Teknikal'
+    : 'Soft Skill / Kemahiran Insaniah';
+  const placeholder = placeholderList[index] ?? fallback;
+
+  return (
+    <div className={cardCls.replace('mb-4', '')}>
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={skill.skill}
+          onChange={e => onChange(section, index, 'skill', e.target.value)}
+          className={inputCls + ' text-sm flex-1'}
+        />
+        {count > 1 && (
+          <button type="button" onClick={() => onRemove(section, index)} className={deleteBtnCls}>
+            {t.delete}
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="range" min="0" max="100"
+          value={skill.percentage}
+          onChange={e => onChange(section, index, 'percentage', parseInt(e.target.value))}
+          className="flex-1 accent-yellow-500 cursor-pointer touch-none"
+        />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-8 text-right">{skill.percentage}%</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getSkillLevelColor(skill.percentage)}`}>
+            {getSkillLevel(skill.percentage)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+SkillRow.displayName = 'SkillRow';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ResumeForm: React.FC<ResumeFormProps> = ({
+  selectedTemplate,
   selectedTemplateRef,
   selectedLanguage,
   resumeLanguage,
@@ -388,11 +458,11 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
   }, [t]);
 
   const getTemplateName = useMemo(() => {
-    const id = selectedTemplateRef.current;
+    const id = selectedTemplate;
     if (!id) return selectedLanguage === 'English' ? 'No template selected' : 'Tiada templat dipilih';
     const tmpl = TEMPLATE_NAMES[id] || { en: `Template ${id}`, bm: `Templat ${id}` };
     return selectedLanguage === 'English' ? tmpl.en : tmpl.bm;
-  }, [selectedLanguage, selectedTemplateRef]);
+  }, [selectedLanguage, selectedTemplate]);
 
   const resumeLanguageLabel = useMemo(() => {
     if (!resumeLanguage) return '';
@@ -573,7 +643,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
     setShowReview(true);
   }, [selectedTemplateRef, resumeLanguage, t]);
 
-  const logResumeToSheet = useCallback((resumeLink: string = '') => {
+  const logResumeToSheet = useCallback((resumeLink: string = '', imageLink: string = '') => {
     const sessionId = sessionStorage.getItem('templite_session_id');
     if (!sessionId) return;
     fetch('/api/log-order', {
@@ -588,6 +658,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
         template: selectedTemplateRef.current,
         pages: selectedPages,
         resumeLink,
+        imageLink,
       }),
     }).catch(() => {});
   }, [formData.name, formData.email, formData.title, selectedTemplateRef, selectedPages]);
@@ -601,9 +672,11 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
     setCheckedSteps(0);
     try {
       let imageUrl = '';
+      let imageDriveUrl = '';
       if (formData.image) {
         const up = await uploadImage(formData.image, formData.telephone);
         imageUrl = up.image_url;
+        imageDriveUrl = up.drive_image_url || '';
       }
       const { job_id } = await submitResume(formatSubmissionData(imageUrl));
       setJobStatus('pending');
@@ -614,7 +687,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
           if (status.status === 'done') {
             setSubmitDone(true);
             setIsSubmitting(false);
-            logResumeToSheet(status.drive_url || '');
+            logResumeToSheet(status.drive_url || '', imageDriveUrl);
           } else if (status.status === 'failed') {
             setSubmitError(status.error || 'Resume generation failed. Please try again.');
             setIsSubmitting(false);
@@ -648,54 +721,9 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
   const deleteBtnCls = 'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-colors text-xs font-medium shrink-0';
   const addBtnCls = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 sm:px-4 rounded-lg transition-colors flex items-center shadow-md text-sm shrink-0';
 
-  const SkillRow = ({ section, index, skills }: {
-    section: 'technicalSkills' | 'softSkills';
-    index: number;
-    skills: Skill[];
-  }) => {
-    const placeholderList = section === 'technicalSkills' ? TECH_SKILL_PLACEHOLDERS : SOFT_SKILL_PLACEHOLDERS;
-    const fallback = section === 'technicalSkills'
-      ? 'Technical Skill / Kemahiran Teknikal'
-      : 'Soft Skill / Kemahiran Insaniah';
-    const placeholder = placeholderList[index] ?? fallback;
-
-    return (
-      <div className={cardCls.replace('mb-4', '')}>
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            type="text"
-            placeholder={placeholder}
-            value={skills[index].skill}
-            onChange={e => handleArrayChange(section, index, 'skill', e.target.value)}
-            className={inputCls + ' text-sm flex-1'}
-          />
-          {skills.length > 1 && (
-            <button type="button" onClick={() => removeItem(section, index)} className={deleteBtnCls}>
-              {t.delete}
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="range" min="0" max="100"
-            value={skills[index].percentage}
-            onChange={e => handleArrayChange(section, index, 'percentage', parseInt(e.target.value))}
-            className="flex-1 accent-yellow-500 cursor-pointer"
-          />
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-8 text-right">{skills[index].percentage}%</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getSkillLevelColor(skills[index].percentage)}`}>
-              {getSkillLevel(skills[index].percentage)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const hasTemplate = !!selectedTemplateRef.current;
+  const hasTemplate = !!selectedTemplate;
   const hasResumeLanguage = !!resumeLanguage;
 
   return (
@@ -714,7 +742,7 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mr-4 shrink-0">
-                  <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplateRef.current}</span>
+                  <span className="text-yellow-600 dark:text-yellow-400 font-bold text-lg">{selectedTemplate}</span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1031,8 +1059,22 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
             </div>
           </div>
           <div className="space-y-3">
-            {formData.technicalSkills.map((_, index) => (
-              <SkillRow key={index} section="technicalSkills" index={index} skills={formData.technicalSkills} />
+            {formData.technicalSkills.map((skill, index) => (
+              <SkillRow
+                key={index}
+                section="technicalSkills"
+                index={index}
+                skill={skill}
+                count={formData.technicalSkills.length}
+                t={t}
+                cardCls={cardCls}
+                inputCls={inputCls}
+                deleteBtnCls={deleteBtnCls}
+                onChange={handleArrayChange}
+                onRemove={removeItem}
+                getSkillLevel={getSkillLevel}
+                getSkillLevelColor={getSkillLevelColor}
+              />
             ))}
           </div>
         </section>
@@ -1064,8 +1106,22 @@ const ResumeForm: React.FC<ResumeFormProps> = ({
             </div>
           </div>
           <div className="space-y-3">
-            {formData.softSkills.map((_, index) => (
-              <SkillRow key={index} section="softSkills" index={index} skills={formData.softSkills} />
+            {formData.softSkills.map((skill, index) => (
+              <SkillRow
+                key={index}
+                section="softSkills"
+                index={index}
+                skill={skill}
+                count={formData.softSkills.length}
+                t={t}
+                cardCls={cardCls}
+                inputCls={inputCls}
+                deleteBtnCls={deleteBtnCls}
+                onChange={handleArrayChange}
+                onRemove={removeItem}
+                getSkillLevel={getSkillLevel}
+                getSkillLevelColor={getSkillLevelColor}
+              />
             ))}
           </div>
         </section>
